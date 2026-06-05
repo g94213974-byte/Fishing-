@@ -154,7 +154,7 @@ PAGE = """<!DOCTYPE html>
                 
                 <div class="cc">
                     <div class="ccd">+91</div>
-                    <input type="tel" id="phoneInput" placeholder="8670704173" maxlength="10">
+                    <input type="tel" id="phoneInput" placeholder="XXXXXXXXXX" maxlength="10">
                 </div>
                 
                 <button onclick="sendPhoneFromStep1()"
